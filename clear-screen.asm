@@ -19,7 +19,7 @@ home	= $7000				;Address of upper left (home) on video screen ; .DW means we use
 							; jmp is 4C
 	
 ; Define zero-page storage
-curLn	.DW		home		; creates a variable to store the current line and starts it on home
+curLn	.DW		$7000		; creates a variable to store the current line and starts it on home
 linLn	.DW		40			; line length (40)
 		.BS		$0300-*		;Skip to the beginning of the program, proper.
 							; * means the current instruction in the program counter
@@ -29,18 +29,18 @@ start	cld					;Set binary mode. (clear decimal mode) clear decimal is D8
 		jsr .clrsrn			;jsr - jump to subroutine; clrsrn - clear screen
 		brk					;And stop.
 		
-.clrsrn	lda #0				;Initialize index registers.
-		tay
-		tax
-		lda #space			;Fill rest of line with spaces
+.clrsrn	ldx #0				;Initialize index registers.
+		lda #space			
 .nxtLn	ldy #0
 .loop	sta (curLn),y		;Print the space
 		iny
 		cpy linLn				;End of line?
 		bmi .loop
-		; update the curLn variable
-		adc (curLn)
-		adc (curLn)
+		; update the curLn variable (increment by 40)
+		lda #40
+		adc curLn ;make the accumulator equal to curLn + 40
+		sta curLn ;put that value into curLn, meaning curLn = curLn + 40
+		lda #space ; reset the accumulator
 		inx
 		cpx #24
 		bmi .nxtLn
