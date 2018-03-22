@@ -56,6 +56,4 @@ clrsrn	ldx #0				;Initialize index registers.
 		bmi .nxtLn
 		rts
 		
-		
-		.EN					;End of program. Might not be required, but doesn't hurt. Any code below this isn't assembled. 
-		
+		.EN					;End of program. Might not be required, but doesn't hurt. Any code below this isn't assembled. 		
