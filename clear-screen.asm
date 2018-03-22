@@ -39,12 +39,12 @@ clrsrn	ldx #0				;Initialize index registers.
 		bmi .loop
 		; update the curLn variable (increment by 40)
 		lda curLn
-		add #40
+		adc #40
 		sta curLn
 		; deal with over flow
 		bcc .cont
 		lda curLn+1
-		add #01
+		adc #01
 		sta curLn+1
 .cont	lda #space
 		;lda #40

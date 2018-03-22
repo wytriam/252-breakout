@@ -3,10 +3,9 @@
 ; Instructor: 			Dr. Conlon
 ; Date started: 		March 21, 2018
 ; Last modification: 	March 21, 2018
-; Purpose of program:	Breakout Game
-
+; Purpose of program:	Clear Video Screen
 	.CR		6502					; Assemble 6502 language.
-	.TF		breakout.prg,BIN		; Object file and format
+	.TF		breakout.prg,BIN	; Object file and format
 	.LI		toff					; Listing on, no timings included.
 	
 ; Define some constants
