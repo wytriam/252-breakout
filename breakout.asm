@@ -2,7 +2,7 @@
 ; Course: 		COMP 252
 ; Instructor: 		Dr. Conlon
 ; Date started: 	March 21, 2018
-; Last modification: 	March 21, 2018
+; Last modification: 	March 26, 2018
 ; Purpose of program:	Breakout Game
 
 	.CR	6502			; Assemble 6502 language.
