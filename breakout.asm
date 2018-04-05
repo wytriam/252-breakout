@@ -26,6 +26,8 @@ ioctrl	= iobase+3
 curLn	.DW	home	;creates a variable to store the current line and starts it on home
 linLn	.DW	40	;line length (40)
 pukPos 	.DW	$7500	;the location of the puck
+delYP	.DB	0	; The vertical change in the puck. Ranges from -4 to 4. 
+delXP	.DB	0	; The horizontal change in the puck. Ranges from -4 to 4. 
 	.BS	$0300-*	;Skip to the beginning of the program, proper.
 			;* means the current instruction in the program counter
 			;.BS stands for byte string. This sets aside everything between the variable and $0300
@@ -34,6 +36,11 @@ pukPos 	.DW	$7500	;the location of the puck
 start	cld		;Set binary mode. (clear decimal mode) clear decimal is D8
 	cli		;Clear interrupt disable bit
 	jsr clrsrn	;jsr - jump to subroutine; clrsrn - clear screen
+	;
+	;
+	; SET THE PUCK HERE
+	;
+	;
 	lda #$0b		
 	sta iocmd	;Set command status
 	lda #$1a
