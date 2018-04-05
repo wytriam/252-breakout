@@ -1,9 +1,0 @@
-pseudo-code: 
-print out a line of 0's on current line
-update current Line variable
-	add 40 to current line (pull from memory into a, use ADD command, STA into current line address)
-	check to see if overflow bit (c for carry) is set or not set
-	if it is set, add 1 to current line + 1 (that'll be the 2nd byte of current line)
-increment x
-check to see if x is less than 25
-	
