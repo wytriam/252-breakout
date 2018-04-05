@@ -7,10 +7,12 @@
 
 	.CR	6502			; Assemble 6502 language.
 	.TF	breakout.prg,BIN	; Object file and format
+; CHANGE THIS TO FOXTROT.PRG FOR SUBMISSION!!!
 	.LI	toff			; Listing on, no timings included.
 	
 ; Define some constants
 space 	= $20		;ASCII code for space.
+pukChar	= 230		;ASCII code for a pixel-filling box
 home	= $7000		;Address of upper left (home) on video screen ; .DW means we use a 2-byte value
 iobase	= $8800
 iostat	= iobase+1	;No spaces in sbasm expressions
@@ -21,8 +23,9 @@ ioctrl	= iobase+3
 	jmp	start	;$0300 - Assembler has 2 passes, so we can use variables before we define them if they get defined somewhere in the program	;Jump to the beginning of the program, proper.				;jmp is 4C
 	
 ; Define zero-page storage
-curLn	.DW	$7000	;creates a variable to store the current line and starts it on home
+curLn	.DW	home	;creates a variable to store the current line and starts it on home
 linLn	.DW	40	;line length (40)
+pukPos 	.DW	$7500	;the location of the puck
 	.BS	$0300-*	;Skip to the beginning of the program, proper.
 			;* means the current instruction in the program counter
 			;.BS stands for byte string. This sets aside everything between the variable and $0300
