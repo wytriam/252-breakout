@@ -81,10 +81,10 @@ clrsrn	ldx #0		;Initialize index registers.
 ;
 ; sub-routine to draw puck
 ;
-drwPuk	lda space	; Prepare to clear screen where puck was
+drwPuk	lda #space	; Prepare to clear screen where puck was
 	sta (pukPos)	; Clear screen where puck was
 			; Movement yayayayaya
-	lda pukChar	; Prepare to re-draw the puck
+	lda #pukChar	; Prepare to re-draw the puck
 	sta (pukPos)	; Re-draw the puck;
 	rts
 	
