@@ -36,11 +36,8 @@ delXP	.DB	0	; The horizontal change in the puck. Ranges from -4 to 4.
 start	cld		;Set binary mode. (clear decimal mode) clear decimal is D8
 	cli		;Clear interrupt disable bit
 	jsr clrsrn	;jsr - jump to subroutine; clrsrn - clear screen
-	;
-	;
-	; SET THE PUCK HERE
-	;
-	;
+	jsr drwPuk	;jsr - jump to subroutine; drwPuk - draw puck
+	
 	lda #$0b		
 	sta iocmd	;Set command status
 	lda #$1a
@@ -80,6 +77,15 @@ clrsrn	ldx #0		;Initialize index registers.
 	inx
 	cpx #25
 	bmi .nxtLn
+	rts
+;
+; sub-routine to draw puck
+;
+drwPuk	lda space	; Prepare to clear screen where puck was
+	sta (pukPos)	; Clear screen where puck was
+			; Movement yayayayaya
+	lda pukChar	; Prepare to re-draw the puck
+	sta (pukPos)	; Re-draw the puck;
 	rts
 	
 	.EN		;End of program. Might not be required, but doesn't hurt. Any code below this isn't assembled. 		
