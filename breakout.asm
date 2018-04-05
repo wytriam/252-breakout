@@ -25,7 +25,7 @@ ioctrl	= iobase+3
 ; Define zero-page storage
 curLn	.DW	home	;creates a variable to store the current line and starts it on home
 linLn	.DW	40	;line length (40)
-pukPos 	.DW	$7500	;the location of the puck
+pukPos 	.DW	$71F4	;the location of the puck
 delYP	.DB	0	; The vertical change in the puck. Ranges from -4 to 4. 
 delXP	.DB	0	; The horizontal change in the puck. Ranges from -4 to 4. 
 	.BS	$0300-*	;Skip to the beginning of the program, proper.
