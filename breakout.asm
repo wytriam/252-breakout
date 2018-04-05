@@ -25,7 +25,7 @@ ioctrl	= iobase+3
 ; Define zero-page storage
 curLn	.DW	home	;creates a variable to store the current line and starts it on home
 linLn	.DW	40	;line length (40)
-pukPos 	.DW	$71F4	;the location of the puck
+pukPos 	.DW	$71CC	;the location of the puck
 delYP	.DB	0	; The vertical change in the puck. Ranges from -4 to 4. 
 delXP	.DB	0	; The horizontal change in the puck. Ranges from -4 to 4. 
 	.BS	$0300-*	;Skip to the beginning of the program, proper.
@@ -36,8 +36,8 @@ delXP	.DB	0	; The horizontal change in the puck. Ranges from -4 to 4.
 start	cld		;Set binary mode. (clear decimal mode) clear decimal is D8
 	cli		;Clear interrupt disable bit
 	jsr clrsrn	;jsr - jump to subroutine; clrsrn - clear screen
-	jsr drwPuk	;jsr - jump to subroutine; drwPuk - draw puck
-	
+			
+main	jsr drwPuk	;main redraws the puck and checks for player input
 	lda #$0b		
 	sta iocmd	;Set command status
 	lda #$1a
@@ -53,7 +53,7 @@ write1	lda iostat	;Read the ACIA status
 	beq write1	;No, wait for it to empty
 	pla		;Otherwise, load saved accumulator
 	sta iobase	;and write to output.
-	jmp getkey	;Repeat
+	jmp main	;Repeat main loop
 
 	brk		;And stop.
 ;
