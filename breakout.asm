@@ -88,10 +88,68 @@ drwPuk	lda #space	; Prepare to clear screen where puck was
 	sta (pukPos)	; Clear screen where puck was
 	ldx #0		; set x counter to 0 (initialize for movement)
 	ldy #0		; set y counter to 0 (initialize for movement)
-.loop	cpx (deltaX)	; loop for moving the puck. this compares the 
-	bne .doneX
+.loop	cpx (deltaX)	; loop for moving the puck. this makes sure we don't move past deltaX
+	bne .doneX	;.doneX is for when we've processed the X movement this cycle
+	inx		; we're processing this x, so increment it. 
+	lda (xSign)	; check the direction of deltaX
+	cmp #$00	; this checks if xSign is positive
+	beq .xPos
+	clc		;x is negative
+	lda pukPos	;update the pukPos variable (subtract 1)
+	sbc #01		;decrement by 1
+	sta pukPos
+	lda pukPos+1	;deal with over flow
+	sbc #00
+	sta pukPos+1	
+.xPos	clc		;Clear the carry flag
+	lda pukPos	;update the pukPos variable (increment by 1)
+	adc #01		;we can't use inc because we might have overflow
+	sta curLn
+	lda curLn+1	;deal with over flow
+	adc #00
+	sta curLn+1
+	jsr openPos	;check whether the new location is free
+	cmp #$01	;is this space open? 01 is yes
+	beq .doneX	;ends here if a = $01
+	dex		; we don't want this x to count. undo it. 
+	cmp (deltaX)	;a = 00; we need to flip the xSign. First, check what xSign is
+	beq .flipX	
+	lda #$00	;xSign = 01; Set it to 00
+	sta deltaX	;save the new deltaX
+	jmp .doneX	;we're finished with x
+.flipX	lda #$01	;xSign = 00; Set it to 01
+	sta deltaX	;save the new deltaX
 .doneX	cpy (deltaY)
 	bne .doneY
+	iny		; we're processing this y, so increment it. 
+	lda (ySign)	; check the direction of deltaY
+	cmp #$00	; this checks if ySign is positive
+	beq .yPos
+	clc		;y is negative
+	lda pukPos	;update the pukPos variable (subtract 40)
+	sbc #40		;decrement by 40
+	sta pukPos
+	lda pukPos+1	;deal with over flow
+	sbc #00
+	sta pukPos+1	
+.yPos	clc		;Clear the carry flag
+	lda pukPos	;update the pukPos variable (add 40)
+	adc #40		;we can't use inc because we might have overflow
+	sta curLn
+	lda curLn+1	;deal with over flow
+	adc #00
+	sta curLn+1
+	jsr openPos	;check whether the new location is free
+	cmp #$01	;is this space open? 01 is yes
+	beq .doneY	;ends here if a = $01
+	dey		; we don't want this y to count. undo it. 
+	cmp (deltaY)	;a = 00; we need to flip the ySign. First, check what ySign is
+	beq .flipY	
+	lda #$00	;ySign = 01; Set it to 00
+	sta deltaY	;save the new deltaY
+	jmp .doneY	;we're finished with y
+.flipY	lda #$01	;xSign = 00; Set it to 01
+	sta deltaY	;save the new deltaY
 .doneY	cpx (deltaX)	; compare the x-counter to deltaX
 	bmi .loop	; loop back if x needs more iterations
 	cpy (deltaY)	; compare the y-counter to deltaY
@@ -105,7 +163,7 @@ drwPuk	lda #space	; Prepare to clear screen where puck was
 ;
 openPos	lda #space	; Prepare to compare whatever is in memory at pukPos to space
 	cmp (pukPos)	; compare a to whatever is in memory locaton pukPos
-	beq .true	; a and space are the same. branch
+	beq .true	; a = space. branch to return true
 	lda #$00	; a != space. return false
 	rts
 .true	lda #$01	; return true
