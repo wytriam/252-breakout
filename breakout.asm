@@ -39,23 +39,23 @@ ySign	.DB	0	; The sign of the deltaX. 0 is positive, 1 is negative
 start	cld		;Set binary mode. (clear decimal mode) clear decimal is D8
 	cli		;Clear interrupt disable bit
 	jsr clrsrn	;jsr - jump to subroutine; clrsrn - clear screen			
-main	jsr drwPuk	;main redraws the puck and checks for player input
+.main	jsr drwPuk	;main redraws the puck and checks for player input
 	lda #$0b		
 	sta iocmd	;Set command status
 	lda #$1a
 	sta ioctrl	;0 stop bits, 8 bit word, 2400 baud
-getkey	lda iostat	;Read the ACIA status
+.getkey	lda iostat	;Read the ACIA status
 	and #$08	;Is the rx register empty?
-	beq getkey	;Yes, wait for it to fill
+	beq .getkey	;Yes, wait for it to fill
 	lda iobase	;Otherwise, read into accumulator
 	sta $7000
-write	pha		;Save accumulator
-write1	lda iostat	;Read the ACIA status
+	pha		;Save accumulator
+.write1	lda iostat	;Read the ACIA status
 	and #$10	;Is the tx register empty?
-	beq write1	;No, wait for it to empty
+	beq .write1	;No, wait for it to empty
 	pla		;Otherwise, load saved accumulator
 	sta iobase	;and write to output.
-	jmp main	;Repeat main loop
+	jmp .main	;Repeat main loop
 
 	brk		;And stop.
 ;
