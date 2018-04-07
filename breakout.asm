@@ -26,9 +26,9 @@ ioctrl	= iobase+3
 curLn	.DW	home	;creates a variable to store the current line and starts it on home
 linLn	.DW	40	;line length (40)
 pukPos 	.DW	$71CC	;the location of the puck
-deltaX	.DB	0	; The vertical change in the puck.
+deltaX	.DB	0	; The horizontal change in the puck.
 xSign	.DB	0	; The sign of the deltaX. 0 is positive, 1 is negative
-deltaY	.DB	0	; The horizontal change in the puck.
+deltaY	.DB	0	; The vertical change in the puck.
 ySign	.DB	0	; The sign of the deltaX. 0 is positive, 1 is negative
 
 	.BS	$0300-*	;Skip to the beginning of the program, proper.
