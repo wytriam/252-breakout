@@ -74,7 +74,7 @@ drwPuk	lda #space	; Prepare to clear screen where puck was
 	sta (pukPos),y	; Clear screen where puck was
 	ldx #0		; set x counter to 0 (initialize for movement)
 	ldy #0		; set y counter to 0 (initialize for movement)
-.loopDP	cpx deltaX	; loop for moving the puck. this makes sure we don't move past deltaX
+.ldp	cpx deltaX	; loop for moving the puck. this makes sure we don't move past deltaX
 	beq .doneX	;.doneX is for when we've processed the X movement this cycle
 	inx		; we're processing this x, so increment it. 
 	lda xSign	; check the direction of deltaX
@@ -93,7 +93,7 @@ drwPuk	lda #space	; Prepare to clear screen where puck was
 	lda pukPos	;update the pukPos variable (increment by 1)
 	adc #01		;we can't use inc because we might have overflow
 	sta curLn
-	lda curLn+1	;deal with over flow
+	lda curLn+1	;deal with overflow
 	adc #00
 	sta curLn+1
 	jsr openPos	;check whether the new location is free
@@ -126,7 +126,7 @@ drwPuk	lda #space	; Prepare to clear screen where puck was
 	lda pukPos	;update the pukPos variable (add 40)
 	adc #40		;we can't use inc because we might have overflow
 	sta curLn
-	lda curLn+1	;deal with over flow
+	lda curLn+1	;deal with overflow
 	adc #00
 	sta curLn+1
 	jsr openPos	;check whether the new location is free
@@ -141,9 +141,9 @@ drwPuk	lda #space	; Prepare to clear screen where puck was
 .flipY	lda #$01	;xSign = 00; Set it to 01
 	sta deltaY	;save the new deltaY
 .doneY	cpx deltaX	; compare the x-counter to deltaX
-	bmi .loopDP	; loop back if x needs more iterations
+	bmi .ldp	; loop back if x needs more iterations
 	cpy deltaY	; compare the y-counter to deltaY
-	bmi .loopDP
+	bmi .ldp
 	ldy #0		; get y set to write properly. 
 	lda #pukChar	; Prepare to re-draw the puck
 	sta (pukPos),y	; Re-draw the puck;
@@ -153,8 +153,8 @@ drwPuk	lda #space	; Prepare to clear screen where puck was
 ; sub-routine that checks to see if the position of pukPos is open or not. If the position == space, sets a to $01
 ;
 openPos	lda #pukPos	; Prepare to compare whatever is in memory at pukPos to space
+			;WE NEED AN INDIRECT LOAD. TRY lda (addr),y?
 	cmp #space	; compare a to whatever is in memory locaton pukPos
-			; THIS IS NOT WORKING. IT IS NOT COMPARING A TO THE MEMORY ADDRESS OF 
 	beq .true	; a = space. branch to return true
 	lda #$00	; a != space. return false
 	rts
@@ -169,7 +169,6 @@ input	lda #$0b
 	and #$08	;Is the rx register empty?
 	beq .getkey	;Yes, wait for it to fill
 	lda iobase	;Otherwise, read into accumulator
-	sta $7000
 	pha		;Save accumulator
 .write1	lda iostat	;Read the ACIA status
 	and #$10	;Is the tx register empty?
