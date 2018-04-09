@@ -30,7 +30,6 @@ deltaX	.DB	0	; The horizontal change in the puck.
 xSign	.DB	0	; The sign of the deltaX. 0 is positive, 1 is negative
 deltaY	.DB	0	; The vertical change in the puck.
 ySign	.DB	0	; The sign of the deltaX. 0 is positive, 1 is negative
-
 	.BS	$0300-*	;Skip to the beginning of the program, proper.
 			;* means the current instruction in the program counter
 			;.BS stands for byte string. This sets aside everything between the variable and $0300
@@ -84,7 +83,8 @@ clrsrn	ldx #0		;Initialize index registers.
 ; sub-routine to draw the puck
 ;
 drwPuk	lda #space	; Prepare to clear screen where puck was
-	sta (pukPos)	; Clear screen where puck was
+	ldy #0		; get y set to write properly. 
+	sta (pukPos),y	; Clear screen where puck was
 ;	ldx #0		; set x counter to 0 (initialize for movement)
 ;	ldy #0		; set y counter to 0 (initialize for movement)
 ;.loop	cpx (deltaX)	; loop for moving the puck. this makes sure we don't move past deltaX
@@ -153,8 +153,9 @@ drwPuk	lda #space	; Prepare to clear screen where puck was
 ;	bmi .loop	; loop back if x needs more iterations
 ;	cpy (deltaY)	; compare the y-counter to deltaY
 ;	bmi .loop
+	ldy #0		; get y set to write properly. 
 	lda #pukChar	; Prepare to re-draw the puck
-	sta (pukPos)	; Re-draw the puck;
+	sta (pukPos),y	; Re-draw the puck;
 	rts
 	
 ;
