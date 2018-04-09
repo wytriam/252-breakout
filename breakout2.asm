@@ -79,29 +79,21 @@ printC	pla
 	pla		;get row
 	tax
 	;get address of row
-	lda home-40	; this is 40 before curLine, so that curLine can handle variables on the first row. 
-	sta curLine	;zero out curLine
-	lda home-39
-	sta curLine+1
-.getRow	clc		;Clear the carry flag
-	lda curLine	;update the curLn variable (increment by linLen)
-	adc #linLen
-	sta curLine
-	lda curLine+1	;deal with overflow
-	adc #00
-	sta curLine+1
-	dex
-	cpx #$00
-	bpl .getRow	;if the value of x is > than 0, loop. 
-	pla		;grab the char to write. 
-	sta (curLine),y
-	;load return address
+	txa
+	asl		;double it ; but why?
+	lda (line00,x)	;get first byte of row address
+	sta curline
+	inx
+	lda (line00,x)	;get 2nd byte of row address
+	sta curline+1
+	pla		;get char
+	sta (curline),y	
 	lda .save+1
 	pha
 	lda .save
 	pha
 	rts
-.save	.DW 2
+.save	.DW 1
 	
 ;
 ; sub-routine to turn off cursor
@@ -116,20 +108,19 @@ crsrOff	lda #10         ; First byte links second byte to a specific crtc contro
 ; sub-routine to clear screen		
 ;	
 clrScrn	ldx #0		;clear the x register
-	lda #space	;put space in the a register
-.nextLn	ldy #0
+.nextLn	lda #space	;put space in the a register
+	ldy #0
 .loop	sta (curLine),y	;Print the space
 	iny
 	cpy linLen	;check if y is at end of line.
 	bmi .loop
 	clc		;Clear the carry flag
 	lda curLine	;update the curLn variable (increment by 40)
-	adc #linLen
+	adc #40
 	sta curLine
-	lda curLine+1	;deal with overflow
+	lda curLine+1	;deal with over flow
 	adc #00
 	sta curLine+1
-	lda #space
 	inx
 	cpx #25
 	bmi .nextLn
