@@ -1,29 +1,29 @@
-curline .DB 2
-line00	.DW $7000
-line01 	.DW line00+1
-line02	.DW line01+1
-line03	.DW line02+1
-line04	.DW line03+1
-line05	.DW line04+1
-line06	.DW line05+1
-line07	.DW line06+1
-line08	.DW line07+1
-line09	.DW line08+1
-line10	.DW line09+1
-line11	.DW line10+1
-line12	.DW line11+1
-line13	.DW line12+1
-line14	.DW line13+1
-line15	.DW line14+1
-line16	.DW line15+1
-line17	.DW line16+1
-line18	.DW line17+1
-line19	.DW line18+1
-line20	.DW line19+1
-line21	.DW line20+1
-line22	.DW line21+1
-line23	.DW line22+1
-line24	.DW line23+1
+curLine	.DW home		;creates a variable to store the current line that is 2 bytes large
+line00	.DW home
+line01 	.DW home+40	;Addresses to reduce math
+line02	.DW home+80
+line03	.DW home+120
+line04	.DW home+160
+line05	.DW home+200
+line06	.DW home+240
+line07	.DW home+280
+line08	.DW home+320
+line09	.DW home+360
+line10	.DW home+400
+line11	.DW home+440
+line12	.DW home+480
+line13	.DW home+520
+line14	.DW home+560
+line15	.DW home+600
+line16	.DW home+640
+line17	.DW home+680
+line18	.DW home+720
+line19	.DW home+760
+line20	.DW home+800
+line21	.DW home+840
+line22	.DW home+880
+line23	.DW home+920
+line24	.DW home+960
 
 prch	pla
 	sta .save	; where does .save and .save+1 actually save? ;save the first byte of the return address
@@ -36,10 +36,10 @@ prch	pla
 			;get address of row
 	txa
 	asl		;double it
-	lda(line00,x)	;get first byte of row address
+	lda (line00,x)	;get first byte of row address
 	sta curline
 	inx
-	lda(line00,x)	;get 2nd byte of row address
+	lda (line00,x)	;get 2nd byte of row address
 	sta curline+1
 	pla		;get char
 	sta (curline),y	
