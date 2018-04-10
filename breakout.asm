@@ -50,10 +50,11 @@ start	cld		;Set binary mode. (clear decimal mode)
 	sta iocmd	;enable, ~DTR low
 	lda #%00011110	;1 stop bit, 8 bit word,
 	sta ioctrl	;9600 bps
-	
-	jsr irqinit	;initialize interrupt and reset vectors
-	
+	jsr irqinit	;initialize interrupt and reset vectors	
 	jsr init	;initialize the game
+.main	jsr movePk
+	jmp .main
+	
 	brk		;Stop the program
 
 irq	pha		;Save registers.
@@ -104,11 +105,11 @@ irqinit	lda #irq	;Initialize NMI vector.
 ;	
 init	jsr clrScrn	;clear the screen
 	jsr crsrOff	;turn the cursor off
-	lda #puck	; set the char for the ball
+	lda #111	; set the char for the ball
 	pha		; turn that parameter in
-	lda #xPuck	; set the row to 12
+	lda xPuck	; set the row to 12
 	pha
-	lda #yPuck	; set the col to 20
+	lda yPuck	; set the col to 20
 	pha
 	jsr printC	; print the ball
 	jsr movePk	; move the ball once
@@ -215,7 +216,7 @@ movePk	lda #space	; clear the current puck Pos
 	ldy yCnt
 	cpy #00
 	bne .mvmtLp
-	lda #puck	; set the char for the ball
+	lda #111	; set the char for the ball
 	pha		; turn that parameter in
 	lda #xPuck	; set the row to xPuck
 	pha
@@ -374,11 +375,6 @@ clrScrn	ldx #0		;clear the x register
 	cpx #25
 	bmi .nextLn
 	rts	
-
-;
-;sub-routine that is the main loop in which the game runs!
-;
-
 
 ;
 ;sub-routine to move paddle right
