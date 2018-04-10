@@ -60,7 +60,7 @@ printC	pla
 	;get address of row
 .getRow	clc		;Clear the carry flag
 	lda curLine	;update the curLn variable (increment by 40)
-	adc #40
+	adc #linLen
 	sta curLine
 	lda curLine+1	;deal with over flow
 	adc #00
@@ -96,11 +96,11 @@ clrScrn	ldx #0		;clear the x register
 	ldy #0
 .loop	sta (curLine),y	;Print the space
 	iny
-	cpy #40		;check if y is at end of line.
+	cpy #linLen	;check if y is at end of line.
 	bmi .loop
 	clc		;Clear the carry flag
 	lda curLine	;update the curLn variable (increment by 40)
-	adc #40
+	adc #linLen
 	sta curLine
 	lda curLine+1	;deal with over flow
 	adc #00
