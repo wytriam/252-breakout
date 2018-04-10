@@ -12,6 +12,7 @@
 	
 ; CONSTANTS
 space 	= $20		;ASCII code for space.
+puck 	= 111		;ASCII code for the puck ('o')
 home	= $7000		;Address of upper left (home) on video screen 
 linLen	= 40
 
@@ -37,7 +38,7 @@ start	cld		;Set binary mode. (clear decimal mode)
 ;	
 init	jsr clrScrn	;clear the screen
 	jsr crsrOff	;turn the cursor off
-	lda #111	; set the char for the ball
+	lda #puck	; set the char for the ball
 	pha		; turn that parameter in
 	lda #xPuck	; set the row to 12
 	pha
@@ -53,6 +54,14 @@ init	jsr clrScrn	;clear the screen
 ;sub-routine to move the puck
 ;
 movePk	lda #space	; set the char for the ball
+	pha		; turn that parameter in
+	lda #xPuck	; set the row to xPuck
+	pha
+	lda #yPuck	; set the col to yPuck
+	pha
+	jsr printC	; print a space
+	
+	lda #space	; set the char for the ball
 	pha		; turn that parameter in
 	lda #xPuck	; set the row to xPuck
 	pha
