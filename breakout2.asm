@@ -20,33 +20,8 @@ linLen	= 40
 	jmp	start	;Jump to the beginning of the program, proper.
 
 ; VARIABLES
-curLine	.DW home		;creates a variable to store the current line that is 2 bytes large
-line00	.DW home
-line01 	.DW home+40	;Addresses to reduce math
-line02	.DW home+80
-line03	.DW home+120
-line04	.DW home+160
-line05	.DW home+200
-line06	.DW home+240
-line07	.DW home+280
-line08	.DW home+320
-line09	.DW home+360
-line10	.DW home+400
-line11	.DW home+440
-line12	.DW home+480
-line13	.DW home+520
-line14	.DW home+560
-line15	.DW home+600
-line16	.DW home+640
-line17	.DW home+680
-line18	.DW home+720
-line19	.DW home+760
-line20	.DW home+800
-line21	.DW home+840
-line22	.DW home+880
-line23	.DW home+920
-line24	.DW home+960
-	.BS	$0300-*	;Skip to the beginning of the program, proper.
+curLine	.DW home	;creates a variable to store the current line that is 2 bytes large
+	.BS $0300-*	;Skip to the beginning of the program, proper.
 
 	
 start	cld		;Set binary mode. (clear decimal mode)
@@ -57,14 +32,14 @@ start	cld		;Set binary mode. (clear decimal mode)
 ; sub-routine to initialize the game
 ;	
 init	jsr clrScrn	;clear the screen
-	jsr crsrOff	;turn the cursor off
-	lda #111	; set the char for the ball
-	pha		; turn that parameter in
-	lda #12		; set the row to 12
-	pha
-	lda #20		; set the col to 20
-	pha
-	jsr printC	; print the ball
+	;jsr crsrOff	;turn the cursor off
+	;lda #111	; set the char for the ball
+	;pha		; turn that parameter in
+	;lda #12		; set the row to 12
+	;pha
+	;lda #20		; set the col to 20
+	;pha
+	;jsr printC	; print the ball
 	rts		;return to main
 	
 ;
@@ -78,16 +53,22 @@ printC	pla
 	tay		;save
 	pla		;get row
 	tax
+	lda home-40	;load 40 back from a
+	sta curLine
+	lda home-39
+	sta curLine+1
 	;get address of row
-	txa
-	asl		;double it ; but why?
-	lda (line00,x)	;get first byte of row address
-	sta curline
-	inx
-	lda (line00,x)	;get 2nd byte of row address
-	sta curline+1
-	pla		;get char
-	sta (curline),y	
+.getRow	clc		;Clear the carry flag
+	lda curLine	;update the curLn variable (increment by 40)
+	adc #40
+	sta curLine
+	lda curLine+1	;deal with over flow
+	adc #00
+	sta curLine+1
+	dex
+	cpx #00
+	bpl .getRow
+	; return information
 	lda .save+1
 	pha
 	lda .save
@@ -112,7 +93,7 @@ clrScrn	ldx #0		;clear the x register
 	ldy #0
 .loop	sta (curLine),y	;Print the space
 	iny
-	cpy linLen	;check if y is at end of line.
+	cpy #40		;check if y is at end of line.
 	bmi .loop
 	clc		;Clear the carry flag
 	lda curLine	;update the curLn variable (increment by 40)

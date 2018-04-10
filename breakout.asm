@@ -89,7 +89,7 @@ drwPuk	lda #space	; Prepare to clear screen where puck was
 	sbc #00
 	sta pukPos+1	
 .xPlus	clc		;Clear the carry flag
-	inc xPos	;update position
+	;inc xPos	;update position
 	lda pukPos	;update the pukPos variable (increment by 1)
 	adc #01		;we can't use inc because we might have overflow
 	sta curLn
@@ -122,7 +122,7 @@ drwPuk	lda #space	; Prepare to clear screen where puck was
 	sbc #00
 	sta pukPos+1	
 .yPlus	clc		;Clear the carry flag
-	inc yPos	;Increment y position
+	;inc yPos	;Increment y position
 	lda pukPos	;update the pukPos variable (add 40)
 	adc #40		;we can't use inc because we might have overflow
 	sta curLn
