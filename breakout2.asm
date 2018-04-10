@@ -40,8 +40,52 @@ init	jsr clrScrn	;clear the screen
 	lda #20		; set the col to 20
 	pha
 	jsr printC	; print the ball
+	lda #12		; set the row to 12
+	pha
+	lda #20		; set the col to 20
+	pha
+	jsr getC	
+	pla		; use this to check for right value
 	rts		;return to main
 	
+;	
+;sub-routine to get a char. Argument order is row, column	
+;	
+getC	pla
+	sta .save	; where does .save and .save+1 actually save? ;save the first byte of the return address
+	pla
+	sta .save+1	; save the second byte of the return address
+	pla		;get column
+	tay		;save
+	pla		;get row
+	tax
+	lda #$D8	;load 40 back from home
+	sta curLine
+	lda #$6F
+	sta curLine+1
+	;get address of row
+.getRow	clc		;Clear the carry flag
+	lda curLine	;update the curLn variable (increment by 40)
+	adc #linLen
+	sta curLine
+	lda curLine+1	;deal with over flow
+	adc #00
+	sta curLine+1
+	dex
+	cpx #00
+	bne .getRow
+	;get the char
+	lda (curLine),y
+	pha		;save the char
+	; return information
+	lda .save+1
+	pha
+	lda .save
+	pha
+	rts
+.save	.DW 1
+
+
 ;
 ;sub-routine to print a char. Argument order is char, row, column. 
 ;
