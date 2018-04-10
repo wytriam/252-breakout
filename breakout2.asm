@@ -14,11 +14,21 @@
 space 	= $20		;ASCII code for space.
 home	= $7000		;Address of upper left (home) on video screen 
 linLen	= 40
+iobase	= $8800		;ACIA I/O vector
+iodata	= iobase	;data register
+iostat	= iobase+1	;status register
+iocmd	= iobase+2	;command register
+ioctrl	= iobase+3	;control register
+irv	= $fffa		;interrupt vector start
 
 			;Origin must be set before variables declared. Why?
 	.OR	$0000	;Start code at address $0000
 	jmp	start	;Jump to the beginning of the program, proper.
-
+inbuff	= *
+	.BS $20		;32-byte circular input buffer
+headptr	.DB 0		;Initialize buffer offsets to zero
+tailptr	.DB 0
+	
 ; VARIABLES
 pl	.DW 18
 pr	.DW 22
@@ -27,9 +37,58 @@ curLine	.DW home	;creates a variable to store the current line that is 2 bytes l
 
 	
 start	cld		;Set binary mode. (clear decimal mode)
+	lda #%00001001	;No parity, no echo, tx IRQ disable, rx IRQ
+	sta iocmd	;enable, ~DTR low
+	lda #%00011110	;1 stop bit, 8 bit word,
+	sta ioctrl	;9600 bps
+	
+	jsr irqinit	;initialize interrupt and reset vectors
+	
 	jsr init	;initialize the game
-	jsr movepl
 	brk		;Stop the program
+
+irq	pha		;Save registers.
+	txa
+	pha
+	tya
+	pha
+	lda headptr	;Get buffer head pointer.
+	tax		;Set index register value.
+	sec
+	sbc tailptr
+	and #$1f	;Make circular
+	cmp #$1f	;If headptr - tailptr = 31, buffer is full.
+	beq out		;Buffer is full. Can't do anything.
+	lda iodata	;Get the character from the keyboard.
+	sta inbuff,X	;Store it into the buffer.
+	inx		;Next buffer address
+	txa
+	and #%00011111	;Clear high 3 bits to make buffer circular.
+	sta headptr
+out	pla		;Restore registers
+	tay
+	pla
+	tax
+	pla
+	cli		;Clear interrupt mask (un-disable)
+	rti		;Return from interrupt handler.
+	
+;
+;sub-routine to initialize interrupt and reset vectors
+;
+irqinit	lda #irq	;Initialize NMI vector.
+	sta irv
+	lda #irq+1
+	sta irv+1
+	lda #start	;Initialize RESET vector.
+	sta irv+2
+	lda #start+1
+	sta irv+3
+	lda #irq	;Initialize interrupt vector.
+	sta irv+4
+	lda #irq+1
+	sta irv+5
+	rts
 
 ;
 ; sub-routine to initialize the game
