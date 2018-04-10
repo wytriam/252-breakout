@@ -32,7 +32,7 @@ start	cld		;Set binary mode. (clear decimal mode)
 ; sub-routine to initialize the game
 ;	
 init	jsr clrScrn	;clear the screen
-	;jsr crsrOff	;turn the cursor off
+	jsr crsrOff	;turn the cursor off
 	;lda #111	; set the char for the ball
 	;pha		; turn that parameter in
 	;lda #12		; set the row to 12
@@ -106,3 +106,5 @@ clrScrn	ldx #0		;clear the x register
 	cpx #25
 	bmi .nextLn
 	rts	
+	
+	.EN
