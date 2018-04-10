@@ -33,13 +33,13 @@ start	cld		;Set binary mode. (clear decimal mode)
 ;	
 init	jsr clrScrn	;clear the screen
 	jsr crsrOff	;turn the cursor off
-	;lda #111	; set the char for the ball
-	;pha		; turn that parameter in
-	;lda #12		; set the row to 12
-	;pha
-	;lda #20		; set the col to 20
-	;pha
-	;jsr printC	; print the ball
+	lda #111	; set the char for the ball
+	pha		; turn that parameter in
+	lda #12		; set the row to 12
+	pha
+	lda #20		; set the col to 20
+	pha
+	jsr printC	; print the ball
 	rts		;return to main
 	
 ;
@@ -53,9 +53,9 @@ printC	pla
 	tay		;save
 	pla		;get row
 	tax
-	lda home-40	;load 40 back from a
+	lda #$D8	;load 40 back from home
 	sta curLine
-	lda home-39
+	lda #$6F
 	sta curLine+1
 	;get address of row
 .getRow	clc		;Clear the carry flag
@@ -67,7 +67,10 @@ printC	pla
 	sta curLine+1
 	dex
 	cpx #00
-	bpl .getRow
+	bne .getRow
+	;print char
+	pla 		;get the char from the stack
+	sta (curLine),y	;print the char
 	; return information
 	lda .save+1
 	pha
