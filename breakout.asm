@@ -23,9 +23,13 @@ linLen	= 40
 ; VARIABLES
 curLine	.DW home	;creates a variable to store the current line that is 2 bytes large
 xPuck	.DB 12		;the x position of the puck
-deltaX	.DB 00		;the change in x position
+deltaX	.DB $01		;the change in x position
+xSign	.DB $01		;the positive/negative sign of deltaX. 01 is positive, 00 is negative
+xCnt	.DB 00		;
 yPuck	.DB 20		;the y position of the puck
-deltaY	.DB 00		;the change in y position
+deltaY	.DB $01		;the change in y position
+ySign	.DB $01		;the positive/negative sign of deltaY. 01 is positive, 00 is negative
+yCnt	.DB 00		;
 	.BS $0300-*	;Skip to the beginning of the program, proper.
 
 	
@@ -45,30 +49,77 @@ init	jsr clrScrn	;clear the screen
 	lda #yPuck	; set the col to 20
 	pha
 	jsr printC	; print the ball
-	pla		; use this to check for right value
-	jsr bounce
-	pla
+	jsr movePk	; move the ball once
 	rts		;return to main
 
 ;
 ;sub-routine to move the puck
 ;
-movePk	lda #space	; set the char for the ball
+movePk	lda #space	; clear the current puck Pos
 	pha		; turn that parameter in
 	lda #xPuck	; set the row to xPuck
 	pha
 	lda #yPuck	; set the col to yPuck
 	pha
 	jsr printC	; print a space
-	
-	lda #space	; set the char for the ball
+	; move the ball appropriately
+	ldx deltaX	;
+	stx xCnt
+	ldy deltaY	;
+	sty yCnt
+.mvmtLp	ldx xCnt
+	cpx #00
+	beq .doneX
+	dex		; still x movement to process
+	lda xSign
+	cmp #01
+	beq .xPlus
+	dec xPuck	; x is negative
+	jmp .chkX
+.xPlus	inc xPuck
+.chkX	stx xCnt
+	jsr bounce
+	pla
+	cmp #01
+	beq .togX	; x is positive, set xSign to 00
+	lda #01
+	sta xSign
+	jmp .doneX
+.togX	lda #00
+	sta xSign
+.doneX	ldy yCnt
+	cpy #00
+	beq .doneY
+	dey		; still y movement to process
+	lda ySign
+	cmp #01
+	beq .yPlus
+	dec yPuck	; y is negative
+	jmp .chkY
+.yPlus	inc yPuck
+.chkY	sty yCnt
+	jsr bounce
+	pla
+	cmp #01
+	beq .togY	; x is positive, set xSign to 00
+	lda #01
+	sta ySign
+	jmp .doneY
+.togY	lda #00
+	sta ySign
+.doneY	ldx xCnt
+	cpx #00
+	bne .mvmtLp
+	ldy yCnt
+	cpy #00
+	bne .mvmtLp
+	lda #puck	; set the char for the ball
 	pha		; turn that parameter in
 	lda #xPuck	; set the row to xPuck
 	pha
 	lda #yPuck	; set the col to yPuck
 	pha
 	jsr printC	; print a space
-		;clear the current pukPos
 	rts	
 
 ;
