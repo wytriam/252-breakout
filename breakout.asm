@@ -36,7 +36,7 @@ pr	.DW 22
 curLine	.DW home	;creates a variable to store the current line that is 2 bytes large
 xPuck	.DB 12		;the x position of the puck
 deltaX	.DB $01		;the change in x position
-xSign	.DB $01		;the positive/negative sign of deltaX. 01 is positive, 00 is negative
+xSign	.DB $00		;the positive/negative sign of deltaX. 01 is positive, 00 is negative
 xCnt	.DB 00		;
 yPuck	.DB 20		;the y position of the puck
 deltaY	.DB $01		;the change in y position
@@ -160,9 +160,9 @@ init	jsr clrScrn	;clear the screen
 ;
 movePk	lda #space	; clear the current puck Pos
 	pha		; turn that parameter in
-	lda #xPuck	; set the row to xPuck
+	lda xPuck	; set the row to xPuck
 	pha
-	lda #yPuck	; set the col to yPuck
+	lda yPuck	; set the col to yPuck
 	pha
 	jsr printC	; print a space
 	; move the ball appropriately
@@ -218,15 +218,15 @@ movePk	lda #space	; clear the current puck Pos
 	bne .mvmtLp
 	lda #111	; set the char for the ball
 	pha		; turn that parameter in
-	lda #xPuck	; set the row to xPuck
+	lda xPuck	; set the row to xPuck
 	pha
-	lda #yPuck	; set the col to yPuck
+	lda yPuck	; set the col to yPuck
 	pha
 	jsr printC	; print a space
 	rts	
 
 ;
-;sub-routine to check if the puck should bounce. returns 00 for false, 01 for true
+;sub-routine to check if the puck should bounce. returns 00 for bounce, 01 for don't bounce
 ;
 bounce	pla
 	sta .save	; where does .save and .save+1 actually save? ;save the first byte of the return address
