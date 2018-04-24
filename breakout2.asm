@@ -134,7 +134,10 @@ movePk	stx .xReg	;save the contents of the x-register
 	
 
 ;
-;sub-routine to check if the puck should bounce. returns 00 for bounce, 01 for don't bounce
+; sub-routine to check if the puck should bounce. returns 00 for bounce, 01 for don't bounce
+; Parameters: none
+; Return: true (01) for bounce, false (00) for no bounce
+; TO-DO: THIS IS SET UP FOR THE OPPOSITE WAY IN MOVEPK
 ;
 bounce	stx .xReg	;save the contents of the x-register
 	sty .yReg	;save the contents of the y-register
@@ -167,10 +170,10 @@ bounce	stx .xReg	;save the contents of the x-register
 	cmp #space	; make sure the space the puck is in is a space
 	bne .rFalse	; if it isn't, return false
 	jmp .rTrue
-.rFalse	lda #00
+.rFalse	lda #false
 	pha
 	jmp .return
-.rTrue	lda #01
+.rTrue	lda #true
 	pha
 	jmp .return
 	; return information
@@ -244,6 +247,8 @@ getC	stx .xReg	;save the contents of the x-register
 
 ;
 ;sub-routine to print a char. Argument order is char, row, column. 
+;Parameters: char to print, row, column
+;Return: none
 ;
 printC	stx .xReg	;save the contents of the x-register
 	sty .yReg	;save the contents of the y-register
@@ -339,6 +344,8 @@ onScrn	stx .xReg	;save the contents of the x-register
 	
 ;
 ; sub-routine to turn off cursor
+; Parameters: none
+; Return: none
 ;
 crsrOff	lda #10         ; First byte links second byte to a specific crtc control register
         sta $9000
@@ -347,7 +354,9 @@ crsrOff	lda #10         ; First byte links second byte to a specific crtc contro
 	rts
 
 ;
-; sub-routine to clear screen		
+; sub-routine to clear screen
+; Parameters: none
+; Return: none		
 ;	
 clrScrn	stx .xReg	;save the contents of the x-register
 	sty .yReg	;save the contents of the y-registerldx #0		;clear the x register
