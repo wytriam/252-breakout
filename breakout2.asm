@@ -15,6 +15,8 @@ space 	= $20		;ASCII code for space.
 home	= $7000		;Address of upper left (home) on video screen
 puck 	= 111		;ASCII code for the puck ('o')
 linLen	= 40
+true 	= 01
+false 	= 00
 			;Origin must be set before variables declared. Why?
 	.OR	$0000	;Start code at address $0000
 	jmp	start	;Jump to the beginning of the program, proper.
@@ -38,7 +40,7 @@ start	cld		;Set binary mode. (clear decimal mode)
 	jmp .main
 	
 	brk		;Stop the program
-
+	
 ;
 ; sub-routine to initialize the game
 ;	
@@ -184,19 +186,33 @@ bounce	stx .xReg	;save the contents of the x-register
 .yReg	.DB 0
 
 ;	
-;sub-routine to get a char. Argument order is row, column	
+;sub-routine to get a char. Argument order is row, column
+;Parameters: row, column
+;Return: 1 byte (character at row,col); 00 if char out of bounds	
 ;	
 getC	stx .xReg	;save the contents of the x-register
 	sty .yReg	;save the contents of the y-register
 	pla
-	sta .save	; where does .save and .save+1 actually save? ;save the first byte of the return address
+	sta .save	;where does .save and .save+1 actually save? ;save the first byte of the return address
 	pla
-	sta .save+1	; save the second byte of the return address
+	sta .save+1	;save the second byte of the return address
 	pla		;get column
 	tay		;save
 	pla		;get row
 	tax
-	lda #$D8	;load 40 back from home
+	;make sure parameters are within bounds
+	txa
+	pha		;store the row parameter
+	tya
+	pha		;store the col parameter
+	jsr onScrn	;check the parameters
+	pla		;get the return value
+	cmp #false	; if this is not false...
+	bne .cont	; carry on
+	lda #00		; return 00 (this line is only called on false)
+	pha
+	jmp .return	; end the function prematurely (this line is only called on false)
+.cont	lda #$D8	;load 40 back from home
 	sta curLine
 	lda #$6F
 	sta curLine+1
@@ -215,7 +231,7 @@ getC	stx .xReg	;save the contents of the x-register
 	lda (curLine),y
 	pha		;save the char
 	; return information
-	lda .save+1
+.return	lda .save+1
 	pha
 	lda .save
 	pha
@@ -238,8 +254,19 @@ printC	stx .xReg	;save the contents of the x-register
 	pla		;get column
 	tay		;save
 	pla		;get row
-	tax
-	lda #$D8	;load 40 back from home
+	tax 
+	;make sure parameters are within bounds
+	txa
+	pha		;store the row parameter
+	tya
+	pha		;store the col parameter
+	jsr onScrn	;check the parameters
+	pla		;get the return value
+	cmp #false	; if this is not false...
+	bne .cont	; carry on
+	pla		; take out the last parameter (this line is only called on false)
+	jmp .return	; end the function prematurely (this line is only called on false)
+.cont	lda #$D8	;load 40 back from home
 	sta curLine
 	lda #$6F
 	sta curLine+1
@@ -257,10 +284,9 @@ printC	stx .xReg	;save the contents of the x-register
 	;print char
 	pla 		;get the char from the stack
 	sta (curLine),y	;print the char
-	; return information
-	lda .save+1
+.return	lda .save+1	;Restore return address upper byte
 	pha
-	lda .save
+	lda .save	;Restore return address lower byte
 	pha
 	ldx .xReg	;Restore x register
 	ldy .yReg	;Restore y register
@@ -268,6 +294,48 @@ printC	stx .xReg	;save the contents of the x-register
 .save	.DW 0
 .xReg	.DB 0
 .yReg	.DB 0
+
+;
+; sub-routine to check if parameters are on screen (0<=row<=24; 0<=col<=40); 
+; parameters: row, col
+; returns: true (01) for on screen, false (00) for off screen
+;
+onScrn	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	pla
+	sta .save	;save the first byte of the return address
+	pla
+	sta .save+1	; save the second byte of the return address
+	pla		;get the col parameter
+	tay		;store the col parameter in y
+	pla		;get the row parameter
+	tax		;store the row parameter in x
+	clc
+	clv
+	cpx #00		;compare row to upper-most row
+	bmi .retFl	;if row<0, return false
+	cpx #25		;compare row to lower-most row + 1 (bpl is >=)
+	bpl .retFl	;if row>=25, return false
+	cpy #00		;compare col to left-most col
+	bmi .retFl	;if col<0, return false
+	cpy #41		;compare col to right-most col
+	bpl .retFl	;if col>=41, return false
+.retTr	lda #true	;put return value on stack
+	pha
+	jmp .return	;return the function
+.retFl	lda #false	;put return value on stack
+	pha
+.return	lda .save+1	;Restore return address upper byte
+	pha
+	lda .save	;Restore return address lower byte
+	pha
+	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.save	.DW 0
+.xReg	.DB 0
+.yReg	.DB 0
+
 	
 ;
 ; sub-routine to turn off cursor
