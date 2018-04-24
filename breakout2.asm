@@ -44,7 +44,7 @@ start	cld		;Set binary mode. (clear decimal mode)
 ;	
 init	jsr clrScrn	;clear the screen
 	jsr crsrOff	;turn the cursor off
-	lda #111	; set the char for the ball ('o')
+	lda #puck	; set the char for the ball ('o')
 	pha		; turn that parameter in
 	lda xPuck	; set the row to 12
 	pha
@@ -57,7 +57,9 @@ init	jsr clrScrn	;clear the screen
 ;
 ;sub-routine to move the puck
 ;
-movePk	lda #space	; clear the current puck Pos
+movePk	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	lda #space	; clear the current puck Pos
 	pha		; turn that parameter in
 	lda xPuck	; set the row to xPuck
 	pha
@@ -122,12 +124,19 @@ movePk	lda #space	; clear the current puck Pos
 	lda yPuck	; set the col to yPuck
 	pha
 	jsr printC	; print a space
-	rts	
+	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.xReg	.DB 0
+.yReg	.DB 0
+	
 
 ;
 ;sub-routine to check if the puck should bounce. returns 00 for bounce, 01 for don't bounce
 ;
-bounce	pla
+bounce	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	pla
 	sta .save	; where does .save and .save+1 actually save? ;save the first byte of the return address
 	pla
 	sta .save+1	; save the second byte of the return address
@@ -167,13 +176,19 @@ bounce	pla
 	pha
 	lda .save
 	pha
+	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
 	rts
-.save	.DW 1
+.save	.DW 0
+.xReg	.DB 0
+.yReg	.DB 0
 
 ;	
 ;sub-routine to get a char. Argument order is row, column	
 ;	
-getC	pla
+getC	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	pla
 	sta .save	; where does .save and .save+1 actually save? ;save the first byte of the return address
 	pla
 	sta .save+1	; save the second byte of the return address
@@ -204,13 +219,19 @@ getC	pla
 	pha
 	lda .save
 	pha
+	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
 	rts
-.save	.DW 1
+.save	.DW 0
+.xReg	.DB 0
+.yReg	.DB 0
 
 ;
 ;sub-routine to print a char. Argument order is char, row, column. 
 ;
-printC	pla
+printC	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	pla
 	sta .save	; where does .save and .save+1 actually save? ;save the first byte of the return address
 	pla
 	sta .save+1	; save the second byte of the return address
@@ -241,8 +262,12 @@ printC	pla
 	pha
 	lda .save
 	pha
+	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
 	rts
-.save	.DW 1
+.save	.DW 0
+.xReg	.DB 0
+.yReg	.DB 0
 	
 ;
 ; sub-routine to turn off cursor
@@ -256,7 +281,8 @@ crsrOff	lda #10         ; First byte links second byte to a specific crtc contro
 ;
 ; sub-routine to clear screen		
 ;	
-clrScrn	ldx #0		;clear the x register
+clrScrn	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-registerldx #0		;clear the x register
 .nextLn	lda #space	;put space in the a register
 	ldy #0
 .loop	sta (curLine),y	;Print the space
@@ -273,6 +299,10 @@ clrScrn	ldx #0		;clear the x register
 	inx
 	cpx #25
 	bmi .nextLn
-	rts	
+	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.xReg	.DB 0
+.yReg	.DB 0
 	
 	.EN
