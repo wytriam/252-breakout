@@ -38,8 +38,24 @@ cSign	.DB $01		;the positive/negative sign of deltaC. 01 is positive (right), 00
 ; MAIN LOOP	
 start	cld		;Set binary mode. (clear decimal mode)
 	jsr init	;initialize the game
-.main	lda #$FF	;call nop a bunch
-	pha
+.main	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)	
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)	
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)
 	jsr wstTm	;waste some time (slow ball down)
 	jsr movePk
 	jmp .main
@@ -53,26 +69,20 @@ start	cld		;Set binary mode. (clear decimal mode)
 ;
 wstTm	stx .xReg	;save the contents of the x-register
 	sty .yReg	;save the contents of the y-register
-	pla
-	sta .save	;where does .save and .save+1 actually save? ;save the first byte of the return address
-	pla
-	sta .save+1	;save the second byte of the return address
-	pla		;get the parameter
-	tax		;store the parameter in x
-.loop	cpx #$00	;time-wasting loop
-	beq .return	;exit loop
+	ldx #$FF
+	ldy #$FF
+.lpOutr	cpy #$00
+	beq .return
+	dey
+.lpInnr	cpx #$00	;time-wasting loop
+	beq .lpOutr	;exit to outer loop
 	nop		;nop once
 	dex		;decrement x
-	jmp .loop	;try again
+	jmp .lpInnr	;try again
 	; return information
-.return	lda .save+1
-	pha
-	lda .save
-	pha
-	ldx .xReg	;Restore x register
+.return	ldx .xReg	;Restore x register
 	ldy .yReg	;Restore y register
 	rts
-.save	.DW 0
 .xReg	.DB 0
 .yReg	.DB 0	
 	
@@ -200,7 +210,6 @@ mvPkRw	stx .xReg	;save the contents of the x-register
 	rts
 .xReg	.DB 0
 .yReg	.DB 0
-
 
 ;
 ; sub-routine to check if the puck should bounce. returns 00 for bounce, 01 for don't bounce
@@ -395,7 +404,6 @@ onScrn	stx .xReg	;save the contents of the x-register
 .save	.DW 0
 .xReg	.DB 0
 .yReg	.DB 0
-
 	
 ;
 ; sub-routine to turn off cursor
