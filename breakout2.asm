@@ -12,17 +12,19 @@
 	
 ; CONSTANTS
 space 	= $20		;ASCII code for space.
-home	= $7000		;Address of upper left (home) on video screen
 puck 	= 111		;ASCII code for the puck ('o')
-linLen	= 40
-true 	= 01
-false 	= 00
+minRow	= $00		;The smallest row value. 00 in decimal
+maxRow	= $18		;The largest row value + 1. 24 in decimal
+minCol	= $00		;The smallest col value. 00 in decimal
+maxCol	= $28		;The largest col value + 1. 40 in decimal
+true 	= $01		;A constant to make code more readable
+false 	= $00		;A constant to make code more readable
 			;Origin must be set before variables declared. Why?
 	.OR	$0000	;Start code at address $0000
 	jmp	start	;Jump to the beginning of the program, proper.
 
 ; VARIABLES
-curLine	.DW home	;creates a variable to store the current line that is 2 bytes large
+curLine	.DW $7000	;creates a variable to store the current line that is 2 bytes large
 pkRow	.DB $0B		;the row the puck is on. Ranges from 0-23 ($00-$17 hex)
 pkCol	.DB $13		;the column the puck is on. Ranges from 0-39 ($00-$27 hex)
 ;deltaR	.DB $01		;the change in row - NOT USED (only used if ball moves more than 1 square at a time)
@@ -33,13 +35,46 @@ cSign	.DB $01		;the positive/negative sign of deltaC. 01 is positive (right), 00
 ;cCnt	.DB $00		;the number of tiems the col has moved this iteration of movePk
 	.BS $0300-*	;Skip to the beginning of the program, proper.
 
-	
+; MAIN LOOP	
 start	cld		;Set binary mode. (clear decimal mode)
 	jsr init	;initialize the game
-.main	jsr movePk
+.main	lda #$FF	;call nop a bunch
+	pha
+	jsr wstTm	;waste some time (slow ball down)
+	jsr movePk
 	jmp .main
 	
 	brk		;Stop the program
+	
+;
+; sub-routine to waste time (used to slow down the game)
+; Parameters: How long to waste (# nops)
+; Return: none
+;
+wstTm	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	pla
+	sta .save	;where does .save and .save+1 actually save? ;save the first byte of the return address
+	pla
+	sta .save+1	;save the second byte of the return address
+	pla		;get the parameter
+	tax		;store the parameter in x
+.loop	cpx #$00	;time-wasting loop
+	beq .return	;exit loop
+	nop		;nop once
+	dex		;decrement x
+	jmp .loop	;try again
+	; return information
+.return	lda .save+1
+	pha
+	lda .save
+	pha
+	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.save	.DW 0
+.xReg	.DB 0
+.yReg	.DB 0	
 	
 ;
 ; sub-routine to initialize the game
@@ -55,7 +90,6 @@ init	jsr clrScrn	;clear the screen
 	lda pkCol	;store the col parameter
 	pha
 	jsr printC	;print the ball
-	jsr movePk	;move the ball once
 	rts
 
 ;
@@ -234,14 +268,14 @@ getC	stx .xReg	;save the contents of the x-register
 	lda #$FF		;return FF (this line is only called on false)
 	pha
 	jmp .return	;end the function prematurely (this line is only called on false)
-.cont	lda #$D8	;load 40 back from home
+.cont	lda #$D8	;load 40 back from $7000
 	sta curLine
 	lda #$6F
 	sta curLine+1
 	;get address of row
 .getRow	clc		;Clear the carry flag
 	lda curLine	;update the curLn variable (increment by 40)
-	adc #linLen
+	adc #maxCol
 	sta curLine
 	lda curLine+1	;deal with over flow
 	adc #00
@@ -291,14 +325,14 @@ printC	stx .xReg	;save the contents of the x-register
 	bne .cont	; carry on
 	pla		; take out the last parameter (this line is only called on false)
 	jmp .return	; end the function prematurely (this line is only called on false)
-.cont	lda #$D8	;load 40 back from home
+.cont	lda #$D8	;load 40 back from $7000
 	sta curLine
 	lda #$6F
 	sta curLine+1
 	;get address of row
 .getRow	clc		;Clear the carry flag
 	lda curLine	;update the curLn variable (increment by 40)
-	adc #linLen
+	adc #maxCol
 	sta curLine
 	lda curLine+1	;deal with over flow
 	adc #00
@@ -338,13 +372,13 @@ onScrn	stx .xReg	;save the contents of the x-register
 	tax		;store the row parameter in x
 	clc
 	clv
-	cpx #00		;compare row to upper-most row
+	cpx #minRow	;compare row to upper-most row
 	bmi .retFl	;if row<0, return false
-	cpx #24		;compare row to lower-most row + 1 (bpl is >=)
+	cpx #maxRow	;compare row to lower-most row + 1 (bpl is >=)
 	bpl .retFl	;if row>=24, return false
-	cpy #00		;compare col to left-most col
+	cpy #minCol	;compare col to left-most col
 	bmi .retFl	;if col<0, return false
-	cpy #40		;compare col to right-most col
+	cpy #maxCol	;compare col to right-most col
 	bpl .retFl	;if col>=40, return false
 .retTr	lda #true	;put return value on stack
 	pha
@@ -381,22 +415,22 @@ crsrOff	lda #10         ;First byte links second byte to a specific crtc control
 ;	
 clrScrn	stx .xReg	;save the contents of the x-register
 	sty .yReg	;save the contents of the y-register
-	ldx #0		;clear the x register
+	ldx #$FF	;clear the x register (and set to -1)
 .nextLn	lda #space	;put space in the a register
 	ldy #0
 .loop	sta (curLine),y	;Print the space
 	iny
-	cpy #linLen	;check if y is at end of line.
+	cpy #maxCol	;check if y is at end of line.
 	bmi .loop
 	clc		;Clear the carry flag
 	lda curLine	;update the curLn variable (increment by 40)
-	adc #linLen
+	adc #maxCol
 	sta curLine
 	lda curLine+1	;deal with over flow
 	adc #00
 	sta curLine+1
 	inx
-	cpx #25
+	cpx #maxRow	;This should be maxRow
 	bmi .nextLn
 	ldx .xReg	;Restore x register
 	ldy .yReg	;Restore y register
