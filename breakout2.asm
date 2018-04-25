@@ -24,13 +24,13 @@ false 	= 00
 ; VARIABLES
 curLine	.DW home	;creates a variable to store the current line that is 2 bytes large
 pkRow	.DB $0B		;the row the puck is on. Ranges from 0-23 ($00-$17 hex)
-;deltaX	.DB $01		;the change in x position
-;xSign	.DB $00		;the positive/negative sign of deltaX. 01 is positive, 00 is negative
-;xCnt	.DB 00		;
 pkCol	.DB $13		;the column the puck is on. Ranges from 0-39 ($00-$27 hex)
-;deltaY	.DB $01		;the change in y position
-;ySign	.DB $01		;the positive/negative sign of deltaY. 01 is positive, 00 is negative
+;deltaR	.DB $01		;the change in row
+;deltaC	.DB $01		;the change in column
+;rSign	.DB $00		;the positive/negative sign of deltaR. 01 is positive (downwards), 00 is negative (upwards)
+;cSign	.DB $01		;the positive/negative sign of deltaC. 01 is positive (right), 00 is negative (left)
 ;yCnt	.DB 00		;
+;xCnt	.DB 00		;
 	.BS $0300-*	;Skip to the beginning of the program, proper.
 
 	
@@ -63,25 +63,25 @@ init	jsr clrScrn	;clear the screen
 ; Parameters: none
 ; Return: none
 ;
-;movePk	stx .xReg	;save the contents of the x-register
-;	sty .yReg	;save the contents of the y-register
-;	lda #space	;clear the current puck Pos
-;	pha		;turn that parameter in
-;	lda pkRow	;set the row to pkRow
-;	pha
-;	lda pkCol	;set the col to pkCol
-;	pha
-;	jsr printC	;print a space
+movePk	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	lda #space	;clear the current puck Pos
+	pha		;turn that parameter in
+	lda pkRow	;set the row to pkRow
+	pha
+	lda pkCol	;set the col to pkCol
+	pha
+	jsr printC	;print a space
 ;	; move the ball appropriately
-;	ldx deltaX	;
+;	ldx deltaR	;
 ;	stx xCnt
-;	ldy deltaY	;
+;	ldy deltaC	;
 ;	sty yCnt
 ;.mvmtLp	ldx xCnt
 ;	cpx #00
 ;	beq .doneX
 ;	dex		;still x movement to process
-;	lda xSign
+;	lda rSign
 ;	cmp #01
 ;	beq .xPlus
 ;	dec pkRow	;x is negative
@@ -91,17 +91,17 @@ init	jsr clrScrn	;clear the screen
 ;	jsr bounce
 ;	pla
 ;	cmp #01
-;	beq .togX	;x is positive, set xSign to 00
+;	beq .togX	;x is positive, set rSign to 00
 ;	lda #01
-;	sta xSign
+;	sta rSign
 ;	jmp .doneX
 ;.togX	lda #00
-;	sta xSign
+;	sta rSign
 ;.doneX	ldy yCnt
 ;	cpy #00
 ;	beq .doneY
 ;	dey		;still y movement to process
-;	lda ySign
+;	lda cSign
 ;	cmp #01
 ;	beq .yPlus
 ;	dec pkCol	;y is negative
@@ -111,37 +111,36 @@ init	jsr clrScrn	;clear the screen
 ;	jsr bounce
 ;	pla
 ;	cmp #01
-;	beq .togY	;x is positive, set xSign to 00
+;	beq .togY	;x is positive, set rSign to 00
 ;	lda #01
-;	sta ySign
+;	sta cSign
 ;	jmp .doneY
 ;.togY	lda #00
-;	sta ySign
+;	sta cSign
 ;.doneY	ldx xCnt
 ;	cpx #00
 ;	bne .mvmtLp
 ;	ldy yCnt
 ;	cpy #00
 ;	bne .mvmtLp
-;	lda #111	;set the char for the ball
-;	pha		;turn that parameter in
-;	lda pkRow	;set the row to pkRow
-;	pha
-;	lda pkCol	;set the col to pkCol
-;	pha
-;	jsr printC	;print a space
-;	ldx .xReg	;Restore x register
-;	ldy .yReg	;Restore y register
-;	rts
-;.xReg	.DB 0
-;.yReg	.DB 0
+	lda #111	;set the char for the ball
+	pha		;turn that parameter in
+	lda pkRow	;set the row to pkRow
+	pha
+	lda pkCol	;set the col to pkCol
+	pha
+	jsr printC	;print a space
+	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.xReg	.DB 0
+.yReg	.DB 0
 	
 
 ;
 ; sub-routine to check if the puck should bounce. returns 00 for bounce, 01 for don't bounce
 ; Parameters: none
 ; Return: true (01) for bounce, false (00) for no bounce
-; TO-DO: THIS IS SET UP FOR THE OPPOSITE WAY IN MOVEPK
 ;
 bounce	stx .xReg	;save the contents of the x-register
 	sty .yReg	;save the contents of the y-register
@@ -180,7 +179,7 @@ bounce	stx .xReg	;save the contents of the x-register
 ;	
 ; sub-routine to get a char. Argument order is row, column
 ; Parameters: row, column
-; Return: 1 byte (character at row,col); 00 if char out of bounds	
+; Return: 1 byte (character at row,col); FF if char out of bounds	
 ;	
 getC	stx .xReg	;save the contents of the x-register
 	sty .yReg	;save the contents of the y-register
@@ -201,7 +200,7 @@ getC	stx .xReg	;save the contents of the x-register
 	pla		;get the return value
 	cmp #false	;if this is not false...
 	bne .cont	;carry on
-	lda #00		;return 00 (this line is only called on false)
+	lda #$FF		;return FF (this line is only called on false)
 	pha
 	jmp .return	;end the function prematurely (this line is only called on false)
 .cont	lda #$D8	;load 40 back from home
