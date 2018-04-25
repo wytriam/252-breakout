@@ -73,8 +73,8 @@ movePk	stx .xReg	;save the contents of the x-register
 	pha
 	jsr printC	;print a space
 	;Handle Ball Movement
-	jsr mvPkCl
-;	jsr mvPkRw
+;	jsr mvPkCl
+	jsr mvPkRw
 	lda #111	;set the char for the ball
 	pha		;turn that parameter in
 	lda pkRow	;set the row to pkRow
@@ -135,7 +135,33 @@ mvPkCl	stx .xReg	;save the contents of the x-register
 ;
 mvPkRw	stx .xReg	;save the contents of the x-register
 	sty .yReg	;save the contents of the y-register
-	ldx .xReg	;Restore x register
+	lda rSign	;load the sign of the column movement
+	clc
+	cmp #true	;if sign==true, move down. Otherwise, move up
+	beq .mvDn	;move down
+	clc
+	cmp #false	;Check to see if sign is negative
+	beq .mvUp	;if it is, move up
+	brk 		;The sign was neither positive or negative. Debug and find out how
+.mvDn	inc pkRow	;Increment the row position by 1
+	jmp .bnChk	;Check to see if we should bounce
+.mvUp	dec pkRow
+.bnChk	jsr bounce	;Check to see if the ball should bounce in this position
+	pla
+	clc
+	cmp #false	;If the bounce return is true, we should bounce
+	beq .return	;If the bounce is false, though, we can jump to return
+	lda rSign	;This code handles how we bounce up/down. First, load the sign....	
+	clc
+	cmp #$00	;Check if the sign is negative
+	beq .nToP	;Change negative to positive
+	lda #$00	;Load the negative
+	sta rSign	;Save the negative in sign
+	jmp .crrctn	;correct the ball from moving to an illegal zone
+.nToP	lda #$01	;Load the positive
+	sta rSign	;store the new sign in column sign variable
+.crrctn	jsr mvPkRw	;correct the ball from moving to an illegal zone
+.return	ldx .xReg	;Restore x register
 	ldy .yReg	;Restore y register
 	rts
 .xReg	.DB 0
