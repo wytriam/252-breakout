@@ -25,12 +25,12 @@ false 	= 00
 curLine	.DW home	;creates a variable to store the current line that is 2 bytes large
 pkRow	.DB $0B		;the row the puck is on. Ranges from 0-23 ($00-$17 hex)
 pkCol	.DB $13		;the column the puck is on. Ranges from 0-39 ($00-$27 hex)
-;deltaR	.DB $01		;the change in row
-;deltaC	.DB $01		;the change in column
-;rSign	.DB $00		;the positive/negative sign of deltaR. 01 is positive (downwards), 00 is negative (upwards)
-;cSign	.DB $01		;the positive/negative sign of deltaC. 01 is positive (right), 00 is negative (left)
-;yCnt	.DB 00		;
-;xCnt	.DB 00		;
+deltaR	.DB $01		;the change in row
+deltaC	.DB $01		;the change in column
+rSign	.DB $00		;the positive/negative sign of deltaR. 01 is positive (downwards), 00 is negative (upwards)
+cSign	.DB $01		;the positive/negative sign of deltaC. 01 is positive (right), 00 is negative (left)
+rCnt	.DB 00		;the counter for 
+cCnt	.DB 00		;
 	.BS $0300-*	;Skip to the beginning of the program, proper.
 
 	
@@ -74,53 +74,53 @@ movePk	stx .xReg	;save the contents of the x-register
 	jsr printC	;print a space
 ;	; move the ball appropriately
 ;	ldx deltaR	;
-;	stx xCnt
+;	stx rCnt
 ;	ldy deltaC	;
-;	sty yCnt
-;.mvmtLp	ldx xCnt
+;	sty cCnt
+;.mvmtLp	ldx rCnt
 ;	cpx #00
-;	beq .doneX
-;	dex		;still x movement to process
+;	beq .doneR
+;	dex		;still row movement to process
 ;	lda rSign
 ;	cmp #01
-;	beq .xPlus
-;	dec pkRow	;x is negative
-;	jmp .chkX
-;.xPlus	inc pkRow
-;.chkX	stx xCnt
+;	beq .rPlus
+;	dec pkRow	;row is negative
+;	jmp .chkR
+;.rPlus	inc pkRow
+;.chkR	stx rCnt
 ;	jsr bounce
 ;	pla
 ;	cmp #01
-;	beq .togX	;x is positive, set rSign to 00
+;	beq .togR	;row is positive, set rSign to 00
 ;	lda #01
 ;	sta rSign
-;	jmp .doneX
-;.togX	lda #00
+;	jmp .doneR
+;.togR	lda #00
 ;	sta rSign
-;.doneX	ldy yCnt
+;.doneR	ldy cCnt
 ;	cpy #00
-;	beq .doneY
+;	beq .doneC
 ;	dey		;still y movement to process
 ;	lda cSign
 ;	cmp #01
-;	beq .yPlus
+;	beq .cPlus
 ;	dec pkCol	;y is negative
-;	jmp .chkY
-;.yPlus	inc pkCol
-;.chkY	sty yCnt
+;	jmp .chkC
+;.cPlus	inc pkCol
+;.chkC	sty cCnt
 ;	jsr bounce
 ;	pla
 ;	cmp #01
-;	beq .togY	;x is positive, set rSign to 00
+;	beq .togC	;x is positive, set rSign to 00
 ;	lda #01
 ;	sta cSign
-;	jmp .doneY
-;.togY	lda #00
+;	jmp .doneC
+;.togC	lda #00
 ;	sta cSign
-;.doneY	ldx xCnt
+;.doneC	ldx rCnt
 ;	cpx #00
 ;	bne .mvmtLp
-;	ldy yCnt
+;	ldy cCnt
 ;	cpy #00
 ;	bne .mvmtLp
 	lda #111	;set the char for the ball
