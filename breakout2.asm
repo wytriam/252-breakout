@@ -19,7 +19,6 @@ minCol	= $00		;The smallest col value. 00 in decimal
 maxCol	= $28		;The largest col value + 1. 40 in decimal
 true 	= $01		;A constant to make code more readable
 false 	= $00		;A constant to make code more readable
-			;Origin must be set before variables declared. Why?
 	.OR	$0000	;Start code at address $0000
 	jmp	start	;Jump to the beginning of the program, proper.
 
@@ -38,33 +37,46 @@ cSign	.DB $01		;the positive/negative sign of deltaC. 01 is positive (right), 00
 ; MAIN LOOP	
 start	cld		;Set binary mode. (clear decimal mode)
 	jsr init	;initialize the game
-.main	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)	
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)	
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)
+.main	jsr waste	;run the clock a few cycles (slow down the ball)
 	jsr movePk
 	jmp .main
 	
 	brk		;Stop the program
-	
+
 ;
+; sub-routine to waste lots of time
+; Paramaters: none
+; Return: none	
+;
+waste	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)	
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)	
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)
+	jsr wstTm	;waste some time (slow ball down)	
+	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.xReg	.DB 0
+.yReg	.DB 0	
+
 ; sub-routine to waste time (used to slow down the game)
-; Parameters: How long to waste (# nops)
+; Parameters: none
 ; Return: none
 ;
 wstTm	stx .xReg	;save the contents of the x-register
