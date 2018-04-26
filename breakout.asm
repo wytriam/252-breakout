@@ -15,19 +15,58 @@ space 	= $20		;ASCII code for space.
 puck 	= 111		;ASCII code for the puck ('o')
 maxRow	= $18		;The largest row value + 1. 24 in decimal
 maxCol	= $28		;The largest col value + 1. 40 in decimal
+iobase	= $8800		;ACIA I/O vector
+iodata	= iobase	;data register
+iostat	= iobase+1	;status register
+iocmd	= iobase+2	;command register
+ioctrl	= iobase+3	;control register
+irv	= $FFFA		;interrupt vector start
 	.OR	$0000	;Start code at address $0000
 	jmp	start	;Jump to the beginning of the program, proper.
 
 ; VARIABLES
 curLine	.DW $7000	;creates a variable to store the current line that is 2 bytes large
+inbuff	= * .BS $20	;32-byte circular input buffer
+headptr	= .DB 0		;Initialize buffer offsets to zero
+tailptr	= .DB 0
 	.BS $0300-*	;Skip to the beginning of the program, proper.
 
 ; MAIN LOOP	
 start	cli		;Clear the interupt bit
-	cld		;Set binary mode. (clear decimal mode)	
+	cld		;Set binary mode. (clear decimal mode)
+	jsr clrScrn	;Clear the screen.
+	jsr initIO
 	brk		;Stop the program
+
+;
+; sub-routine to initialize interupt handler
+; Parameters: none
+; Return: none
+;
+irqinit	lda #irq	;Initialize NMI vector.
+	sta irv
+	lda #irq+1
+	sta irv+1
+	lda #initIO	;Initialize RESET vector (originally start)
+	sta irv+2
+	lda #initIO+1	;(originally start)
+	sta irv+3
+	lda #irq	;Initialize interrupt vector
+	sta irv+4
+	lda #irq+1
+	sta irv+5
 	
 ;
+; sub-routine to initialize the I/O vector
+; Parameters: none
+; Return: none
+;
+initIO	lda #%00001001	;No parity, no echo, tx IRQ disable, rx IRQ enable, ~DTR low
+	sta iocmd	;
+	lda #%00011110	;1 stop bit, 8 bit word, 9600 bps
+	sta ioctrl
+	rts
+
 ; sub-routine to clear screen
 ; Parameters: none
 ; Return: none		
