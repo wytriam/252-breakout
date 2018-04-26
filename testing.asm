@@ -12,7 +12,7 @@ linLen	= 40
 	jmp	start	;Jump to the beginning of the program, proper.
 	
 ;VARIABLES
-myFrstV	.DW 0
+myFrstV	.DW 40
 mySecV	.DW home+10
 	.BS	$0300-*	;Skip to the beginning of the program, proper.
 
@@ -22,7 +22,7 @@ start	cld		;Set binary mode. (clear decimal mode)
 	
 init	lda myFrstV
 	cmp 40
-	BCS hitIt	;it hit it!
+	BNE hitIt	;it hit it!
 	rts
 hitIt	lda space
 	sta home+$1
