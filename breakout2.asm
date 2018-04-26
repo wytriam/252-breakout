@@ -50,26 +50,13 @@ start	cld		;Set binary mode. (clear decimal mode)
 ;
 waste	stx .xReg	;save the contents of the x-register
 	sty .yReg	;save the contents of the y-register
+	ldx #$3F
+.loop	cpx #$00
+	beq .return
+	dex
 	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)	
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)	
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)
-	jsr wstTm	;waste some time (slow ball down)	
-	ldx .xReg	;Restore x register
+	jmp .loop
+.return	ldx .xReg	;Restore x register
 	ldy .yReg	;Restore y register
 	rts
 .xReg	.DB 0
