@@ -26,6 +26,8 @@ iostat	= iobase+1	;status register
 iocmd	= iobase+2	;command register
 ioctrl	= iobase+3	;control register
 irv	= $FFFA		;interrupt vector start
+mPadLKy	= 46		;ASCII for ',', which we use to move the paddle left
+mPadRKy	= 44		;ASCII for '.', which we use to move the paddle right
 irqAdrU	= $50		;Upper byte of IRQ address. 
 irqAdrL	= $00		;Lower byte of IRQ address. 
 	.OR	$0000	;Start code at address $0000
@@ -49,11 +51,8 @@ padColR	.DB 22		;The rightmost column the paddle occupies
 ;
 start	jsr init	;Initialize the game
 .main	jsr waste	;Waste time and handle input
-	jsr moveL
-	jsr waste
-	jsr moveR
 	jmp .main
-	brk		;End the program
+	;brk		;End the program
 
 ;
 ; sub-routine to initialize the game
@@ -133,7 +132,7 @@ ioMain	lda tailptr	;Get one character from the buffer, if there's one there.
 	tax
 	lda inbuff,X	;Get the character.
 	pha		;Char becomes a parameter
-	jsr dostuff	;process the character.
+	jsr movePd	;process the character.
 	inc tailptr	;Increment the offset.
 	lda tailptr	
 	and #%00011111	;Clear high 3 bits to make buffer circular.
@@ -145,7 +144,7 @@ ioMain	lda tailptr	;Get one character from the buffer, if there's one there.
 ; Parameters: Char to print
 ; Return: none
 ; 
-dostuff	stx .xReg	;save the contents of the x-register
+movePd	stx .xReg	;save the contents of the x-register
 	sty .yReg	;save the contents of the y-register
 	pla
 	sta .save	;where does .save and .save+1 actually save? ;save the first byte of the return address
@@ -155,8 +154,17 @@ dostuff	stx .xReg	;save the contents of the x-register
 	and #$10	;Is the tx register empty?
 	beq .write1	;No, wait for it to empty
 	pla		;Otherwise, load saved accumulator
-	sta iobase	;and write to output
-	lda .save+1
+	clc
+	cmp #mPadLKy
+	beq .mvLeft
+	clc
+	cmp #mPadRKy
+	beq .mvRght
+	jmp .return	;Input did not match any key; return
+.mvLeft	jsr moveL
+	jmp .return
+.mvRght	jsr moveR
+.return	lda .save+1
 	pha
 	lda .save
 	pha
@@ -359,7 +367,7 @@ printC	stx .xReg	;save the contents of the x-register
 	pla		;get the return value
 	cmp #false	; if this is not false...
 	bne .cont	; carry on
-	brk
+	;brk
 	pla		; take out the last parameter (this line is only called on false)
 	jmp .return	; end the function prematurely (this line is only called on false)
 .cont	lda #$D8	;load 40 back from $7000
@@ -519,7 +527,7 @@ mvPkCl	stx .xReg	;save the contents of the x-register
 	clc
 	cmp #false	;Check to see if sign is negative
 	beq .mvLft	;if it is, move left
-	brk 		;The sign was neither positive or negative. Debug and find out how
+	;brk 		;The sign was neither positive or negative. Debug and find out how
 .mvRgt	inc pkCol	;Increment the column position by 1
 	jmp .bnChk	;Check to see if we should bounce
 .mvLft	dec pkCol
@@ -558,7 +566,7 @@ mvPkRw	stx .xReg	;save the contents of the x-register
 	clc
 	cmp #false	;Check to see if sign is negative
 	beq .mvUp	;if it is, move up
-	brk 		;The sign was neither positive or negative. Debug and find out how
+	;brk 		;The sign was neither positive or negative. Debug and find out how
 .mvDn	inc pkRow	;Increment the row position by 1
 	jmp .bnChk	;Check to see if we should bounce
 .mvUp	dec pkRow
