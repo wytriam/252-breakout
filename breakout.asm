@@ -160,6 +160,7 @@ movePd	stx .xReg	;save the contents of the x-register
 	clc
 	cmp #mPadRKy
 	beq .mvRght
+	sta iobase	;Print the unknown char
 	jmp .return	;Input did not match any key; return
 .mvLeft	jsr moveL
 	jmp .return
@@ -170,6 +171,7 @@ movePd	stx .xReg	;save the contents of the x-register
 	pha
 	ldx .xReg	;Restore x register
 	ldy .yReg	;Restore y register
+	cli		;Clear the interrupt register bit
 	rts
 .save	.DW 0
 .xReg	.DB 0
@@ -367,9 +369,8 @@ printC	stx .xReg	;save the contents of the x-register
 	pla		;get the return value
 	cmp #false	; if this is not false...
 	bne .cont	; carry on
-	;brk
 	pla		; take out the last parameter (this line is only called on false)
-	jmp .return	; end the function prematurely (this line is only called on false)
+	jmp .return		; end the function prematurely (this line is only called on false)
 .cont	lda #$D8	;load 40 back from $7000
 	sta curLine
 	lda #$6F
@@ -659,7 +660,7 @@ irq	pha		;Save registers.
 	pla
 	tax
 	pla
-	cli		;Clear interrupt mask (un-disable)
+	;cli		;Clear interrupt mask (un-disable)
 	rti		;Return from interupt handler.
 
 	.EN
