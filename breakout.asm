@@ -26,8 +26,8 @@ iostat	= iobase+1	;status register
 iocmd	= iobase+2	;command register
 ioctrl	= iobase+3	;control register
 irv	= $FFFA		;interrupt vector start
-irqAdrU	= $50		;Upper byte of irq address. 
-irqAdrL	= $00		;Lower byte of irq address. 
+irqAdrU	= $50		;Upper byte of IRQ address. 
+irqAdrL	= $00		;Lower byte of IRQ address. 
 	.OR	$0000	;Start code at address $0000
 	jmp	start	;Jump to the beginning of the program, proper.
 
@@ -49,8 +49,10 @@ padColR	.DB 22		;The rightmost column the paddle occupies
 ;
 start	jsr init	;Initialize the game
 .main	jsr waste	;Waste time and handle input
+	jsr moveL
+	jsr waste
+	jsr moveR
 	jmp .main
-	
 	brk		;End the program
 
 ;
@@ -121,50 +123,6 @@ drwInit	lda #puck	;set the char for the ball ('o')
 .done	rts
 	
 ;
-; sub-routine to waste lots of time. This also checks on input. 
-; Paramaters: none
-; Return: none	
-;
-waste	stx .xReg	;save the contents of the x-register
-	sty .yReg	;save the contents of the y-register
-	ldx #$3F
-.loop	cpx #$00
-	beq .return
-	dex
-	jsr wstTm	;waste some time (slow ball down)
-	jsr ioMain	;Handle input
-	jmp .loop
-.return	ldx .xReg	;Restore x register
-	ldy .yReg	;Restore y register
-	rts
-.xReg	.DB 0
-.yReg	.DB 0	
-
-;
-; sub-routine to waste time (used to slow down the game)
-; Parameters: none
-; Return: none
-;
-wstTm	stx .xReg	;save the contents of the x-register
-	sty .yReg	;save the contents of the y-register
-	ldx #$FF
-	ldy #$FF
-.lpOutr	cpy #$00
-	beq .return
-	dey
-.lpInnr	cpx #$00	;time-wasting loop
-	beq .lpOutr	;exit to outer loop
-	nop		;nop once
-	dex		;decrement x
-	jmp .lpInnr	;try again
-	; return information
-.return	ldx .xReg	;Restore x register
-	ldy .yReg	;Restore y register
-	rts
-.xReg	.DB 0
-.yReg	.DB 0	
-
-;
 ; sub-routine to handle input in the buffer
 ; Parameters: none
 ; Return: none
@@ -208,6 +166,116 @@ dostuff	stx .xReg	;save the contents of the x-register
 .save	.DW 0
 .xReg	.DB 0
 .yReg	.DB 0
+
+;
+; sub-routine to move the paddle left
+; Parameters: none
+; Return: none
+; 
+moveL	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	;Check to make sure you don't move offscreen
+	lda padColL
+	cmp #minCol+1
+	beq .return	;Get out of here if you're in the left most position
+	lda #space	;Clear the right paddle
+	pha
+	lda #padRow	
+	pha
+	lda padColR	
+	pha
+	jsr printC
+	dec padColR	;Move the right paddle
+	dec padColL	;Move the left paddle
+	lda #paddle	;Draw the left paddle
+	pha
+	lda #padRow	
+	pha
+	lda padColL	
+	pha
+	jsr printC
+.return	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.xReg	.DB 0
+.yReg	.DB 0	
+
+;
+; sub-routine to move the paddle right
+; Parameters: none
+; Return: none
+; 
+moveR	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	;Check to make sure you don't move offscreen
+	lda padColL
+	cmp #minCol+1
+	beq .return	;Get out of here if you're in the right most position
+	lda #space	;Clear the right paddle
+	pha
+	lda #padRow	
+	pha
+	lda padColL	
+	pha
+	jsr printC
+	inc padColR	;Move the left paddle
+	inc padColL	;Move the right paddle
+	lda #paddle	;Draw the left paddle
+	pha
+	lda #padRow	
+	pha
+	lda padColR	
+	pha
+	jsr printC
+.return	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.xReg	.DB 0
+.yReg	.DB 0	
+
+;
+; sub-routine to waste lots of time. This also checks on input. 
+; Paramaters: none
+; Return: none	
+;
+waste	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	ldx #$3F
+.loop	cpx #$00
+	beq .return
+	dex
+	jsr wstTm	;waste some time (slow ball down)
+	jsr ioMain	;Handle input
+	jmp .loop
+.return	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.xReg	.DB 0
+.yReg	.DB 0	
+
+;
+; sub-routine to waste time (used to slow down the game)
+; Parameters: none
+; Return: none
+;
+wstTm	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	ldx #$FF
+	ldy #$FF
+.lpOutr	cpy #$00
+	beq .return
+	dey
+.lpInnr	cpx #$00	;time-wasting loop
+	beq .lpOutr	;exit to outer loop
+	nop		;nop once
+	dex		;decrement x
+	jmp .lpInnr	;try again
+	; return information
+.return	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.xReg	.DB 0
+.yReg	.DB 0	
 	
 ;	
 ; sub-routine to get a char. Argument order is row, column
