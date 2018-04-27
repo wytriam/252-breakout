@@ -23,7 +23,7 @@ iocmd	= iobase+2	;command register
 ioctrl	= iobase+3	;control register
 irv	= $FFFA		;interrupt vector start
 irqAdrU	= $03		;Upper byte of irq address. 
-irqAdrL	= $37		;Lower byte of irq address. 
+irqAdrL	= $50		;Lower byte of irq address. 
 true 	= $01		;A constant to make code more readable
 false 	= $00		;A constant to make code more readable
 	.OR	$0000	;Start code at address $0000
@@ -34,12 +34,38 @@ curLine	.DW $7000	;creates a variable to store the current line that is 2 bytes 
 inbuff	= * .BS $20	;32-byte circular input buffer
 headptr	.DB 0		;Initialize buffer offsets to zero
 tailptr	.DB 0
+pkRow	.DB $0B		;the row the puck is on. Ranges from 0-23 ($00-$17 hex)
+pkCol	.DB $13		;the column the puck is on. Ranges from 0-39 ($00-$27 hex)
+rSign	.DB $00		;the positive/negative sign of deltaR. 01 is positive (downwards), 00 is negative (upwards)
+cSign	.DB $01		;the positive/negative sign of deltaC. 01 is positive (right), 00 is negative (left)
 	.BS $0300-*	;Skip to the beginning of the program, proper.
 
-start	jsr ioinit	;Initialize the I/O
-	jsr irqinit	;Initialize the IRQ
-.main	jsr waste
+;
+; GAME START AND MAIN LOOP
+;
+start	jsr init	;Initialize the game
+.main	jsr waste	;Waste time and handle input
+	jsr movePk	;Move the puck
 	jmp .main
+
+;
+; sub-routine to initialize the game
+; Parameters: none
+; Return: none
+;	
+init	jsr ioinit	;Initialize the I/O
+	jsr irqinit	;Initialize the IRQ
+	jsr clrScrn	;clear the screen
+	jsr crsrOff	;turn the cursor off
+	lda #puck	;set the char for the ball ('o')
+	pha		;turn that parameter in
+	lda pkRow	;store the row parameter
+	pha
+	lda pkCol	;store the col parameter
+	pha
+	jsr printC	;print the ball
+	rts
+
 	
 ;
 ; sub-routine to initialize I/O
@@ -87,7 +113,7 @@ irq	pha		;Save registers.
 	sbc tailptr
 	and #$1F	;Make circular.
 	cmp #$1F	;If headptr - tailptr = 31, buffer is full.
-	beq .out		;Buffer is full. Can't do anything.
+	beq .out	;Buffer is full. Can't do anything.
 	lda iodata	;Get the character from the keyboard.
 	sta inbuff,x	;Store it into the buffer.
 	inx		;Next buffer address
@@ -103,7 +129,7 @@ irq	pha		;Save registers.
 	rti		;Return from interupt handler.
 
 ;
-; sub-routine to waste lots of time
+; sub-routine to waste lots of time. This also checks on input. 
 ; Paramaters: none
 ; Return: none	
 ;
@@ -384,6 +410,154 @@ clrScrn	stx .xReg	;save the contents of the x-register
 	ldx .xReg	;Restore x register
 	ldy .yReg	;Restore y register
 	rts
+.xReg	.DB 0
+.yReg	.DB 0
+
+;
+; sub-routine to move the puck
+; Parameters: none
+; Return: none
+;
+movePk	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	lda #space	;clear the current puck Pos
+	pha		;turn that parameter in
+	lda pkRow	;set the row to pkRow
+	pha
+	lda pkCol	;set the col to pkCol
+	pha
+	jsr printC	;print a space
+	;Handle Ball Movement
+	jsr mvPkCl
+	jsr mvPkRw
+	lda #111	;set the char for the ball
+	pha		;turn that parameter in
+	lda pkRow	;set the row to pkRow
+	pha
+	lda pkCol	;set the col to pkCol
+	pha
+	jsr printC	;print a space
+	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.xReg	.DB 0
+.yReg	.DB 0	
+
+;
+; sub-routine to move the column of the puck by 1
+; Parameters: none
+; Return: none
+;
+mvPkCl	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	;Check the direction to move
+	lda cSign	;load the sign of the column movement
+	clc
+	cmp #true	;if sign==true, move right. Otherwise, move left
+	beq .mvRgt	;move right
+	clc
+	cmp #false	;Check to see if sign is negative
+	beq .mvLft	;if it is, move left
+	brk 		;The sign was neither positive or negative. Debug and find out how
+.mvRgt	inc pkCol	;Increment the column position by 1
+	jmp .bnChk	;Check to see if we should bounce
+.mvLft	dec pkCol
+.bnChk	jsr bounce	;Check to see if the ball should bounce in this position
+	pla
+	clc
+	cmp #false	;If the bounce return is true, we should bounce
+	beq .return	;If the bounce is false, though, we can jump to return
+	lda cSign	;This code handles how we bounce left/right. First, load the sign....	
+	clc
+	cmp #$00	;Check if the sign is negative
+	beq .nToP	;Change negative to positive
+	lda #$00	;Load the negative
+	sta cSign	;Save the negative in sign
+	jmp .crrctn	;correct the ball from moving to an illegal zone
+.nToP	lda #$01	;Load the positive
+	sta cSign	;store the new sign in column sign variable
+.crrctn	jsr mvPkCl	;correct the ball from moving to an illegal zone
+.return	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.xReg	.DB 0
+.yReg	.DB 0	
+
+;
+; sub-routine to move the row of the puck by 1
+; Parameters: none
+; Return: none
+;
+mvPkRw	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	lda rSign	;load the sign of the column movement
+	clc
+	cmp #true	;if sign==true, move down. Otherwise, move up
+	beq .mvDn	;move down
+	clc
+	cmp #false	;Check to see if sign is negative
+	beq .mvUp	;if it is, move up
+	brk 		;The sign was neither positive or negative. Debug and find out how
+.mvDn	inc pkRow	;Increment the row position by 1
+	jmp .bnChk	;Check to see if we should bounce
+.mvUp	dec pkRow
+.bnChk	jsr bounce	;Check to see if the ball should bounce in this position
+	pla
+	clc
+	cmp #false	;If the bounce return is true, we should bounce
+	beq .return	;If the bounce is false, though, we can jump to return
+	lda rSign	;This code handles how we bounce up/down. First, load the sign....	
+	clc
+	cmp #$00	;Check if the sign is negative
+	beq .nToP	;Change negative to positive
+	lda #$00	;Load the negative
+	sta rSign	;Save the negative in sign
+	jmp .crrctn	;correct the ball from moving to an illegal zone
+.nToP	lda #$01	;Load the positive
+	sta rSign	;store the new sign in column sign variable
+.crrctn	jsr mvPkRw	;correct the ball from moving to an illegal zone
+.return	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.xReg	.DB 0
+.yReg	.DB 0
+
+;
+; sub-routine to check if the puck should bounce. returns 00 for bounce, 01 for don't bounce
+; Parameters: none
+; Return: true (01) for bounce, false (00) for no bounce
+;
+bounce	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	pla
+	sta .save	;save the first byte of the return address
+	pla
+	sta .save+1	;save the second byte of the return address
+	; get what's in the location of the puck
+	lda pkRow
+	pha
+	lda pkCol
+	pha
+	jsr getC
+	pla		;this is the puck location char
+	cmp #puck	;the ball can't bounce of off itself
+	beq .noBnc	;this check might not be necessary after movePk works
+	cmp #space	;make sure the space the puck is in is a space
+	bne .bnc	;if it isn't, return true (so that it bounces)
+.noBnc	lda #false
+	pha
+	jmp .return
+.bnc	lda #true
+	pha
+	; return information
+.return	lda .save+1
+	pha
+	lda .save
+	pha
+	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.save	.DW 0
 .xReg	.DB 0
 .yReg	.DB 0
 
