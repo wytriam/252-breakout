@@ -12,20 +12,22 @@
 ; CONSTANTS
 space 	= $20		;ASCII code for space.
 puck 	= 111		;ASCII code for the puck ('o')
+paddle 	= 61		;ASCII code for the paddle ('=')
+padRow	= $17		;The row the paddle occupies
 minRow	= $00		;The smallest row value. 00 in decimal
 maxRow	= $18		;The largest row value + 1. 24 in decimal
 minCol	= $00		;The smallest col value. 00 in decimal
 maxCol	= $28		;The largest col value + 1. 40 in decimal
+true 	= $01		;A constant to make code more readable
+false 	= $00		;A constant to make code more readable
 iobase	= $8800		;ACIA I/O vector
 iodata	= iobase	;data register
 iostat	= iobase+1	;status register
 iocmd	= iobase+2	;command register
 ioctrl	= iobase+3	;control register
 irv	= $FFFA		;interrupt vector start
-irqAdrU	= $03		;Upper byte of irq address. 
-irqAdrL	= $50		;Lower byte of irq address. 
-true 	= $01		;A constant to make code more readable
-false 	= $00		;A constant to make code more readable
+irqAdrU	= $50		;Upper byte of irq address. 
+irqAdrL	= $00		;Lower byte of irq address. 
 	.OR	$0000	;Start code at address $0000
 	jmp	start	;Jump to the beginning of the program, proper.
 
@@ -38,6 +40,8 @@ pkRow	.DB $0B		;the row the puck is on. Ranges from 0-23 ($00-$17 hex)
 pkCol	.DB $13		;the column the puck is on. Ranges from 0-39 ($00-$27 hex)
 rSign	.DB $00		;the positive/negative sign of deltaR. 01 is positive (downwards), 00 is negative (upwards)
 cSign	.DB $01		;the positive/negative sign of deltaC. 01 is positive (right), 00 is negative (left)
+padColL	.DB 17		;The leftmost column the paddle occupies
+padColR	.DB 22		;The rightmost column the paddle occupies
 	.BS $0300-*	;Skip to the beginning of the program, proper.
 
 ;
@@ -45,8 +49,9 @@ cSign	.DB $01		;the positive/negative sign of deltaC. 01 is positive (right), 00
 ;
 start	jsr init	;Initialize the game
 .main	jsr waste	;Waste time and handle input
-	jsr movePk	;Move the puck
 	jmp .main
+	
+	brk		;End the program
 
 ;
 ; sub-routine to initialize the game
@@ -57,15 +62,8 @@ init	jsr ioinit	;Initialize the I/O
 	jsr irqinit	;Initialize the IRQ
 	jsr clrScrn	;clear the screen
 	jsr crsrOff	;turn the cursor off
-	lda #puck	;set the char for the ball ('o')
-	pha		;turn that parameter in
-	lda pkRow	;store the row parameter
-	pha
-	lda pkCol	;store the col parameter
-	pha
-	jsr printC	;print the ball
+	jsr drwInit	;Draw the initial game
 	rts
-
 	
 ;
 ; sub-routine to initialize I/O
@@ -98,36 +96,30 @@ irqinit	lda #irq	;Initialize NMI vector.
 	rts
 
 ;
-; sub-routine to handle interupts
+; sub-routine to draw the initial game
 ; Parameters: none
 ; Return: none
-;	
-irq	pha		;Save registers.
-	txa
+;
+drwInit	lda #puck	;set the char for the ball ('o')
+	pha		;turn that parameter in
+	lda pkRow	;store the row parameter
 	pha
-	tya
+	lda pkCol	;store the col parameter
 	pha
-	lda headptr	;Get buffer head pointer.
-	tax		;Set index register value.
-	sec
-	sbc tailptr
-	and #$1F	;Make circular.
-	cmp #$1F	;If headptr - tailptr = 31, buffer is full.
-	beq .out	;Buffer is full. Can't do anything.
-	lda iodata	;Get the character from the keyboard.
-	sta inbuff,x	;Store it into the buffer.
-	inx		;Next buffer address
-	txa
-	and #%00011111	;Clear high 3 bits to make buffer circular
-	sta headptr
-.out	pla		;Restore registers
-	tay
-	pla
-	tax
-	pla
-	cli		;Clear interrupt mask (un-disable)
-	rti		;Return from interupt handler.
-
+	jsr printC	;print the ball
+	ldx padColL	;Get the leftmost column of the paddle
+.drawPd	lda #paddle
+	pha
+	lda #padRow	
+	pha
+	txa		;Get the correct column to print from the x register
+	pha
+	jsr printC	;Print the paddle
+	inx
+	cpx padColR	;Compare to the right column
+	bmi .drawPd
+.done	rts
+	
 ;
 ; sub-routine to waste lots of time. This also checks on input. 
 ; Paramaters: none
@@ -299,6 +291,7 @@ printC	stx .xReg	;save the contents of the x-register
 	pla		;get the return value
 	cmp #false	; if this is not false...
 	bne .cont	; carry on
+	brk
 	pla		; take out the last parameter (this line is only called on false)
 	jmp .return	; end the function prematurely (this line is only called on false)
 .cont	lda #$D8	;load 40 back from $7000
@@ -560,5 +553,37 @@ bounce	stx .xReg	;save the contents of the x-register
 .save	.DW 0
 .xReg	.DB 0
 .yReg	.DB 0
+
+	.BS $5000-*	;Skip to the IRQ function
+;
+; sub-routine to handle interupts
+; Parameters: none
+; Return: none
+;	
+irq	pha		;Save registers.
+	txa
+	pha
+	tya
+	pha
+	lda headptr	;Get buffer head pointer.
+	tax		;Set index register value.
+	sec
+	sbc tailptr
+	and #$1F	;Make circular.
+	cmp #$1F	;If headptr - tailptr = 31, buffer is full.
+	beq .out	;Buffer is full. Can't do anything.
+	lda iodata	;Get the character from the keyboard.
+	sta inbuff,x	;Store it into the buffer.
+	inx		;Next buffer address
+	txa
+	and #%00011111	;Clear high 3 bits to make buffer circular
+	sta headptr
+.out	pla		;Restore registers
+	tay
+	pla
+	tax
+	pla
+	cli		;Clear interrupt mask (un-disable)
+	rti		;Return from interupt handler.
 
 	.EN
