@@ -61,14 +61,13 @@ inbuff	= * .BS $20	;32-byte circular input buffer 	THIS VARIABLE MUST BE THE LAS
 ; GAME START AND MAIN LOOP
 ;
 start	jsr init	;Initialize the game
-.main	jsr ioMain
+main	jsr ioMain
 	jsr waste	;Waste time and handle input
 	jsr movePk
 	lda rstFlag
 	cmp #false
-	beq .main
-	jsr resetPk
-	jmp .main
+	beq main
+	jmp resetPk
 	brk		;End the program
 
 ;
@@ -1056,7 +1055,7 @@ updtLvs	stx .xReg	;save the contents of the x-register
 .yReg	.DB 0	
 
 ;
-; sub-routine to reset the puck after it hits the bottom
+; routine to reset the puck after it hits the bottom
 ; Parameters: none
 ; Return: none
 ; 
@@ -1068,8 +1067,10 @@ resetPk	stx .xReg	;save the contents of the x-register
 	jsr waste
 	dec lives
 	lda lives
-	cmp #$FF
+	cmp #$00
 	bpl .drwLvs
+	;Player is out of lives. What do?
+	brk
 	jmp .cont
 .drwLvs	jsr updtLvs	;Update the lives
 .cont	lda #$0B	;Default puck row
@@ -1093,7 +1094,7 @@ resetPk	stx .xReg	;save the contents of the x-register
 	sta rstFlag
 	ldx .xReg	;Restore x register
 	ldy .yReg	;Restore y register
-	rts
+	jmp main
 .xReg	.DB 0
 .yReg	.DB 0
 
