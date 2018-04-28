@@ -13,7 +13,12 @@
 space 	= $20		;ASCII code for space.
 puck 	= 111		;ASCII code for the puck ('o')
 paddle 	= 61		;ASCII code for the paddle ('=')
-padRow	= $17		;The row the paddle occupies
+brickL	= 91		;ASCII code for the left side of a brick ('[')
+brickC	= 35		;ASCII code for the center of a brick ('#')
+brickR	= 93		;ASCII code for the right side of a brick (']')
+bndry	= 45		;ASCII code for the lower boundary ('-')
+padRow	= $16		;The row the paddle occupies
+bndryR	= $17		;The row the boundary is on
 minRow	= $00		;The smallest row value. 00 in decimal
 maxRow	= $18		;The largest row value + 1. 24 in decimal
 minCol	= $00		;The smallest col value. 00 in decimal
@@ -111,7 +116,7 @@ drwInit	lda #puck	;set the char for the ball ('o')
 	pha
 	jsr printC	;print the ball
 	ldx padColL	;Get the leftmost column of the paddle
-.drawPd	lda #paddle
+.drawPd	lda #paddle	;Draw the paddle
 	pha
 	lda #padRow	
 	pha
@@ -122,6 +127,28 @@ drwInit	lda #puck	;set the char for the ball ('o')
 	cpx padColR	;Compare to the right column
 	bmi .drawPd
 	dec padColR	;Make sure the paddle isn't too big
+	;Draw the lower boundary line
+	lda #bndry
+	pha
+	lda #bndryR
+	pha
+	jsr drwLine
+	;Draw the bricks
+	lda #false	;no offset for first row
+	pha
+	lda #$00	;Draw the first row of bricks on the top row
+	pha
+	jsr brckLin	;Draw the first row of bricks
+	lda #true	;offset for second row
+	pha
+	lda #$01	;Set the row
+	pha
+	jsr brckLin	;Draw the second row of bricks
+	lda #false	;no offset for third row
+	pha
+	lda #$02	;Set the row
+	pha
+	jsr brckLin	;Draw the third row of bricks
 .done	rts
 	
 ;
@@ -557,8 +584,18 @@ bounce	stx .xReg	;save the contents of the x-register
 	pla		;this is the puck location char
 	cmp #puck	;the ball can't bounce of off itself
 	beq .noBnc	;this check might not be necessary after movePk works
+	cmp #brickL	;Check to see if this hit a brick left
+	beq .brckCl	;Go to brick collision method
+	cmp #brickC	;Check to see if this hit a brick center	
+	beq .brckCl	;Go to brick collision method
+	cmp #brickR	;Check to see if this hit a brick right
+	beq .brckCl	;Go to brick collision method
 	cmp #space	;make sure the space the puck is in is a space
 	bne .bnc	;if it isn't, return true (so that it bounces)
+	jmp .noBnc	;area is a space, don't bounce
+.brckCl	pha		;Pass the collision char as parameter
+	jsr colBrck	;Handle a brick collision
+	jmp .bnc	;have the ball bounce
 .noBnc	lda #false
 	pha
 	jmp .return
@@ -586,14 +623,10 @@ clrScrn	stx .xReg	;save the contents of the x-register
 	ldx #$FF	;clear the x register (and set to -1)
 .nextLn	lda #space	;put space in the a register
 	pha
+	txa
+	adc #$01	;The x counter is offset from the current row by 1. Let's fix that
+	pha
 	jsr drwLine	;Draw a line of spaces on the current row
-	clc		;Clear the carry flag
-	lda curLine	;update the curLn variable (increment by 40)
-	adc #maxCol
-	sta curLine
-	lda curLine+1	;deal with over flow
-	adc #00
-	sta curLine+1
 	inx
 	cpx #maxRow	;This should be maxRow
 	bmi .nextLn
@@ -605,7 +638,7 @@ clrScrn	stx .xReg	;save the contents of the x-register
 
 ;
 ; sub-routine to draw a single character whatever the curLine is
-; Parameters: char to draw
+; Parameters: char to draw, row to draw on
 ; Return: none
 ; 
 drwLine	stx .xReg	;save the contents of the x-register
@@ -614,8 +647,9 @@ drwLine	stx .xReg	;save the contents of the x-register
 	sta .save	;save the first byte of the return address
 	pla
 	sta .save+1	;save the second byte of the return address
-	pla
-	ldy #0
+	jsr setCrLn	;This pulls the second parameter and sets up curLn correctly
+	pla		;get the character to draw
+	ldy #0		
 .loop	sta (curLine),y	;Print the char
 	iny
 	cpy #maxCol	;Check if y is at the end of line.
@@ -660,6 +694,155 @@ setCrLn	stx .xReg	;save the contents of the x-register
 	beq .return
 	dex
 	jmp .getRow
+.return	lda .save+1
+	pha
+	lda .save
+	pha
+	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.save	.DW 0
+.xReg	.DB 0
+.yReg	.DB 0
+
+;
+; sub-routine to draw a row of bricks
+; Parameters: offset (bool), row 
+; Return: none
+; 
+brckLin	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	pla
+	sta .save	;save the first byte of the return address
+	pla
+	sta .save+1	;save the second byte of the return address
+	jsr setCrLn	;Use the row parameter to go the appropriate line
+	pla		;Get the offset parameter
+	tay		;Save that in the y register
+	ldx #$00
+.brick	tya 		;Get the column for the leftmost part of the brick
+	pha
+	jsr drwBrck	;Draw a brick there
+	iny 		;Update the column counter
+	iny
+	iny
+	cpx #12		;Check to see if we've drawn all our bricks	
+	beq .return	;If we have, return	
+	inx		;If we haven't, increment the brick counter and draw another
+	jmp .brick
+.return	lda .save+1
+	pha
+	lda .save
+	pha
+	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.save	.DW 0
+.xReg	.DB 0
+.yReg	.DB 0
+
+;
+; sub-routine to draw a brick
+; Parameters: (row of brick), column of left brick char
+; Return: none
+;
+drwBrck	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	pla
+	sta .save	;save the first byte of the return address
+	pla
+	sta .save+1	;save the second byte of the return address
+	pla		;Get the column parameter
+;	jsr setCrLn	;use the row parameter to modify the current line
+	lda #brickL	;Load the left part of the brick
+	sta (curLine),y	;Draw the left part of the brick
+	iny
+	lda #brickC	;Load the center part of the brick
+	sta (curLine),y	;Draw the center part of the brick
+	iny
+	lda #brickR	;Load the right part of the brick
+	sta (curLine),y	;Draw the right part of the brick
+.return	lda .save+1
+	pha
+	lda .save
+	pha
+	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.save	.DW 0
+.xReg	.DB 0
+.yReg	.DB 0
+
+;
+; sub-routine to handle a brick collision
+; Parameters: brickChar
+; Return: none
+; 
+colBrck	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+		pla
+	sta .save	;save the first byte of the return address
+	pla
+	sta .save+1	;save the second byte of the return address
+	pla 		;get the brickChar
+	cmp #brickL
+	beq .brckL
+	cmp #brickC
+	beq .brckC
+	cmp #brickR
+	beq .brckR
+	jmp .return	;Do nothing if this function was called with a non-brick collision char
+.brckL	lda pkRow
+	sbc #$00
+	pha
+	lda pkCol	;load the column of the left brick
+	pha
+	jsr ersBrck
+	jmp .return
+.brckC	lda pkRow
+	pha
+	lda pkCol	;load the column of the center brick
+	sbc #$01	;Subtract 1 to get left brick
+	pha
+	jsr ersBrck
+	jmp .return
+.brckR	lda pkRow
+	pha
+	lda pkCol	;load the column of the right brick
+	sub #$02	;Subtract 2 to get left brick
+	pha
+	jsr ersBrck
+.return	lda .save+1
+	pha
+	lda .save
+	pha
+	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.save	.DW 0
+.xReg	.DB 0
+.yReg	.DB 0
+
+;
+; sub-routine to erase a brick
+; Parameters: (row of brick), column of left brick char
+; Return: none
+;
+ersBrck	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	pla
+	sta .save	;save the first byte of the return address
+	pla
+	sta .save+1	;save the second byte of the return address
+	pla		;Get the column parameter
+	tay
+	jsr setCrLn	;use the row parameter to modify the current line
+	lda #space	;Set the accumulator to print spaces
+	sta (curLine),y	;Erase brickL
+	iny
+	sta (curLine),y ;Erase brickC
+	iny
+	sta (curLine),y	;Erase brickR
 .return	lda .save+1
 	pha
 	lda .save
