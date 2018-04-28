@@ -50,7 +50,8 @@ padColR	.DB 22		;The rightmost column the paddle occupies
 ; GAME START AND MAIN LOOP
 ;
 start	jsr init	;Initialize the game
-.main	jsr waste	;Waste time and handle input
+.main	jsr ioMain
+	;jsr waste	;Waste time and handle input
 	jmp .main
 	;brk		;End the program
 
@@ -73,7 +74,7 @@ init	jsr ioinit	;Initialize the I/O
 ;
 ioinit	lda #%00001001	;No parity, no echo, tx IRQ disable, rx IRQ enable, ~DTR low
 	sta iocmd	;
-	lda #%00011110	;1 stop bit, 8 bit word, 9600 bps
+	lda #%00010110	;1 stop bit, 8 bit word, 300 bps
 	sta ioctrl
 	rts
 
@@ -171,7 +172,6 @@ movePd	stx .xReg	;save the contents of the x-register
 	pha
 	ldx .xReg	;Restore x register
 	ldy .yReg	;Restore y register
-	cli		;Clear the interrupt register bit
 	rts
 .save	.DW 0
 .xReg	.DB 0
@@ -255,7 +255,6 @@ waste	stx .xReg	;save the contents of the x-register
 	beq .return
 	dex
 	jsr wstTm	;waste some time (slow ball down)
-	jsr ioMain	;Handle input
 	jmp .loop
 .return	ldx .xReg	;Restore x register
 	ldy .yReg	;Restore y register
@@ -660,7 +659,7 @@ irq	pha		;Save registers.
 	pla
 	tax
 	pla
-	;cli		;Clear interrupt mask (un-disable)
+	cli		;Clear interrupt mask (un-disable)
 	rti		;Return from interupt handler.
 
 	.EN
