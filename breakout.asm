@@ -1208,7 +1208,7 @@ resetPk	stx .xReg	;save the contents of the x-register
 	lda lives
 	cmp #$01
 	bpl .drwLvs
-	jmp resetGm	;Reset the game
+	jmp gameOvr	;Reset the game
 .drwLvs	jsr spcMsg
 	jsr w84spc
 	jsr updtLvs	;Update the lives
@@ -1238,11 +1238,13 @@ resetPk	stx .xReg	;save the contents of the x-register
 .yReg	.DB 0
 
 ; 
-; routine to reset the game
+; sub-routine to reset the game
 ; Parameters: none
 ; Return: none
 ; 
-resetGm	lda #$0B
+resetGm	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	lda #$0B
 	sta pkRow	;Reset pkRow
 	lda #$13	
 	sta pkCol	;Reset pkCol
@@ -1260,7 +1262,75 @@ resetGm	lda #$0B
 	sta rstFlag	;Reset resetFlag
 	lda #3
 	sta lives	;Reset lives
-	jmp start	;Restart game
+	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.xReg	.DB 0
+.yReg	.DB 0
+
+
+;
+; routine to display game over (loss)
+; Parameters: none
+; Return: none
+;	
+gameOvr	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	jsr clrScrn
+	ldy #$0E	;Set the y to perpare to print
+	ldx #$00	;Clear out x
+.loop	lda .gmOver,x	;Get the next char of the score message
+	cmp #$00
+	beq .return	;End if it's equal
+	pha		;Save the char
+	lda #$0E
+	pha		;Push the row
+	tya
+	pha		;Push the col
+	jsr printC	;Print the char
+	iny
+	inx
+	jmp .loop
+.return	jsr w84spc
+	jsr resetGm
+	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	jmp start
+.gmOver	.AZ "GAME OVER"
+.xReg	.DB 0
+.yReg	.DB 0
+	
+;
+; routine to display game over (win)
+; Parameters: none
+; Return: none
+;	
+victory	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	jsr clrScrn
+	ldy #$0F	;Set the y to perpare to print
+	ldx #$00	;Clear out x
+.loop	lda .vctry,x	;Get the next char of the score message
+	cmp #$00
+	beq .return	;End if it's equal
+	pha		;Save the char
+	lda #$0E
+	pha		;Push the row
+	tya
+	pha		;Push the col
+	jsr printC	;Print the char
+	iny
+	inx
+	jmp .loop
+.return	jsr w84spc
+	jsr resetGm
+	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	jmp start
+.vctry	.AZ "YOU WIN"
+.xReg	.DB 0
+.yReg	.DB 0
+
 
 ;
 ; sub-routine to initially print the lives
@@ -1285,7 +1355,6 @@ spcMsg	stx .xReg	;save the contents of the x-register
 	jmp .loop
 .return	ldx .xReg	;Restore x register
 	ldy .yReg	;Restore y register
-	jsr updtLvs
 	rts
 .spcMsg	.AZ "Press Space"
 .xReg	.DB 0
