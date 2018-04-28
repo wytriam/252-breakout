@@ -53,6 +53,7 @@ scrOne	.DB 0		;The one's digit of the score
 scrTen	.DB 0		;The ten's digit of the score
 scrHun	.DB 0		;The hundred's digit of the score
 rstFlag	.DB false	;Reset flag
+lives 	.DB 3		;The lives player has
 inbuff	= * .BS $20	;32-byte circular input buffer 	THIS VARIABLE MUST BE THE LAST VARIABLE BEFORE MAIN PROGRAM
 	.BS $0300-*	;Skip to the beginning of the program, proper.
 
@@ -159,6 +160,7 @@ drwInit	lda #puck	;set the char for the ball ('o')
 	pha
 	jsr brckLin	;Draw the third row of bricks
 	jsr initScr	;Display the initial score
+	jsr initLvs
 .done	rts
 	
 ;
@@ -972,6 +974,88 @@ prtScr	stx .xReg	;save the contents of the x-register
 .yReg	.DB 0
 
 ;
+; sub-routine to initially print the lives
+; Parameters: none
+; Return: none
+; 
+initLvs	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	ldy #$00	;Set the y to perpare to print
+	ldx #$00	;Clear out x
+.loop	lda .scrMsg,x	;Get the next char of the score message
+	cmp #$00
+	beq .return	;End if it's equal
+	pha		;Save the char
+	lda #$18
+	pha		;Push the row
+	tya
+	pha		;Push the col
+	jsr printC	;Print the char
+	iny
+	inx
+	jmp .loop
+.return	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	jsr updtLvs
+	rts
+.scrMsg	.AZ "Balls:"
+.xReg	.DB 0
+.yReg	.DB 0
+
+;
+; sub-routine to update the lives counter
+; Parameters: none
+; Return: none
+;
+updtLvs	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	; Clear out lives
+	ldy lives
+	clc
+	cpy #$01	;Find out if we have 1+ lives
+	bpl .ldb1	;If we do, load a ball
+	lda #space	;Otherwise, load a space
+	jmp .drsp1
+.ldb1	lda #puck	
+.drsp1	pha		;And punch that appropriate value into the parameters
+	lda #$18
+	pha
+	lda #$07
+	pha
+	jsr printC	;Draw the correct character
+	ldy lives
+	clc
+	cpy #$02	;Find out if we have 2+ lives
+	bpl .ldb2	;If we do, load a ball
+	lda #space	;Otherwise, load a space
+	jmp .drsp2
+.ldb2	lda #puck
+.drsp2	pha		;And punch that appropriate value into the parameters
+	lda #$18
+	pha
+	lda #$08
+	pha
+	jsr printC	;Draw the correct character
+	ldy lives
+	clc
+	cpy #$03	;Find out if we have 3+ lives
+	bpl .ldb3	;If we do, load a ball
+	lda #space	;Otherwise, load a space
+	jmp .drsp3
+.ldb3	lda #puck
+.drsp3	pha		;And punch that appropriate value into the parameters
+	lda #$18
+	pha
+	lda #$09
+	pha
+	jsr printC	;Draw the correct character
+.return	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.xReg	.DB 0
+.yReg	.DB 0	
+
+;
 ; sub-routine to reset the puck after it hits the bottom
 ; Parameters: none
 ; Return: none
@@ -982,7 +1066,13 @@ resetPk	stx .xReg	;save the contents of the x-register
 	jsr waste
 	jsr waste
 	jsr waste
-	lda #$0B	;Default puck row
+	dec lives
+	lda lives
+	cmp #$FF
+	bpl .drwLvs
+	jmp .cont
+.drwLvs	jsr updtLvs	;Update the lives
+.cont	lda #$0B	;Default puck row
 	sta pkRow	;Reset puck row
 	lda #$13	;Default puck col
 	sta pkCol	;Reset puck col
