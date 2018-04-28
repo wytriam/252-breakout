@@ -26,8 +26,8 @@ iostat	= iobase+1	;status register
 iocmd	= iobase+2	;command register
 ioctrl	= iobase+3	;control register
 irv	= $FFFA		;interrupt vector start
-mPadLKy	= 46		;ASCII for ',', which we use to move the paddle left
-mPadRKy	= 44		;ASCII for '.', which we use to move the paddle right
+mPadLKy	= 44		;ASCII for ',', which we use to move the paddle left
+mPadRKy	= 46		;ASCII for '.', which we use to move the paddle right
 irqAdrU	= $50		;Upper byte of IRQ address. 
 irqAdrL	= $00		;Lower byte of IRQ address. 
 	.OR	$0000	;Start code at address $0000
@@ -35,7 +35,6 @@ irqAdrL	= $00		;Lower byte of IRQ address.
 
 ; VARIABLES
 curLine	.DW $7000	;creates a variable to store the current line that is 2 bytes large
-inbuff	= * .BS $20	;32-byte circular input buffer
 headptr	.DB 0		;Initialize buffer offsets to zero
 tailptr	.DB 0
 pkRow	.DB $0B		;the row the puck is on. Ranges from 0-23 ($00-$17 hex)
@@ -44,6 +43,7 @@ rSign	.DB $00		;the positive/negative sign of deltaR. 01 is positive (downwards)
 cSign	.DB $01		;the positive/negative sign of deltaC. 01 is positive (right), 00 is negative (left)
 padColL	.DB 17		;The leftmost column the paddle occupies
 padColR	.DB 22		;The rightmost column the paddle occupies
+inbuff	= * .BS $20	;32-byte circular input buffer
 	.BS $0300-*	;Skip to the beginning of the program, proper.
 
 ;
