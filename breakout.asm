@@ -65,7 +65,11 @@ start	jsr init	;Initialize the game
 main	jsr ioMain
 	jsr waste	;Waste time and handle input
 	jsr movePk
-	lda rstFlag
+	lda brckCtr	;Check for winning
+	cmp #$00	;If the bricks are 0, you win.
+	bne .losChk	;
+	jmp resetGm	;Reset the game
+.losChk	lda rstFlag	;Check for losing
 	cmp #false
 	beq main
 	jmp resetPk
