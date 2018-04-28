@@ -194,9 +194,9 @@ cInstrt	stx .xReg	;save the contents of the x-register
 	iny
 	inx
 	jmp .loop
-	lda #true
+.return	lda #true
 	sta instrPt
-.return	ldx .xReg	;Restore x register
+	ldx .xReg	;Restore x register
 	ldy .yReg	;Restore y register
 	rts
 .scrMsg	.AZ "Use the < and > keys to move! Hitting a brick dead center ('#') will give double the points. Press spacebar to start!"
@@ -227,8 +227,8 @@ ioMain	lda tailptr	;Get one character from the buffer, if there's one there.
 ; Parameters: none
 ; Return: none
 ;
-w84spc 	stx .xReg	;save the contents of the x-register
-	sty .yReg	;save the contents of the y-registerlda tailptr	;Get one character from the buffer, if there's one there.
+w84spc 	;stx .xReg	;save the contents of the x-register
+	;sty .yReg	;save the contents of the y-registerlda tailptr	;Get one character from the buffer, if there's one there.
 .loop	lda tailptr	;Get one character from the buffer, if there's one there.
 	cmp headptr	;Check pointers
 	beq .loop	;If equal, buffer is empty
@@ -245,11 +245,11 @@ w84spc 	stx .xReg	;save the contents of the x-register
 	lda tailptr	
 	and #%00011111	;Clear high 3 bits to make buffer circular.
 	sta tailptr
-	ldx .xReg	;Restore x register
-	ldy .yReg	;Restore y register
+	;ldx .xReg	;Restore x register
+	;ldy .yReg	;Restore y register
 	rts		;Return
-.xReg	.DB 0
-.yReg	.DB 0
+;.xReg	.DB 0
+;.yReg	.DB 0
 
 
 ;
@@ -273,7 +273,6 @@ movePd	stx .xReg	;save the contents of the x-register
 	clc
 	cmp #mPadRKy
 	beq .mvRght
-	sta iobase	;Print the unknown char
 	jmp .return	;Input did not match any key; return
 .mvLeft	jsr moveL
 	jmp .return
@@ -1187,9 +1186,8 @@ resetPk	stx .xReg	;save the contents of the x-register
 	bpl .drwLvs
 	;Player is out of lives. What do?
 	jmp resetGm	;Reset the game
-	jmp .cont
-	jsr w84spc
-.drwLvs	jsr updtLvs	;Update the lives
+.drwLvs	jsr w84spc
+	jsr updtLvs	;Update the lives
 .cont	lda #$0B	;Default puck row
 	sta pkRow	;Reset puck row
 	lda #$13	;Default puck col
