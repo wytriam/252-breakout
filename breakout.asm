@@ -86,7 +86,7 @@ ioinit	lda #%00001001	;No parity, no echo, tx IRQ disable, rx IRQ enable, ~DTR l
 ;	
 irqinit	lda #irq	;Initialize NMI vector.
 	sta irv
-	lda #irqAdrU 	;irq+1	;Get the next address (upper byte of irq address)
+	lda #irqAdrU 	
 	sta irv+1
 	lda #start	;Initialize RESET vector
 	sta irv+2
@@ -121,7 +121,7 @@ drwInit	lda #puck	;set the char for the ball ('o')
 	inx
 	cpx padColR	;Compare to the right column
 	bmi .drawPd
-	dec padColR
+	dec padColR	;Make sure the paddle isn't too big
 .done	rts
 	
 ;
@@ -221,7 +221,7 @@ moveR	stx .xReg	;save the contents of the x-register
 	sty .yReg	;save the contents of the y-register
 	;Check to make sure you don't move offscreen
 	lda padColR
-	cmp #maxCol+$FF
+	cmp #maxCol+$FF	;Get the maxCol-1
 	beq .return	;Get out of here if you're in the right most position
 	lda #space	;Clear the right paddle
 	pha
@@ -256,8 +256,8 @@ waste	stx .xReg	;save the contents of the x-register
 .loop	cpx #$00
 	beq .return
 	dex
-	jsr wstTm	;waste some time (slow ball down)
-	jsr ioMain
+	jsr wstTm	;waste some time (nop FF * FF times)
+	jsr ioMain	;Handle any input (gotta keep that snappy)
 	jmp .loop
 .return	ldx .xReg	;Restore x register
 	ldy .yReg	;Restore y register
@@ -316,22 +316,9 @@ getC	stx .xReg	;save the contents of the x-register
 	lda #$FF		;return FF (this line is only called on false)
 	pha
 	jmp .return	;end the function prematurely (this line is only called on false)
-.cont	lda #$D8	;load 40 back from $7000
-	sta curLine
-	lda #$6F
-	sta curLine+1
-	;get address of row
-.getRow	clc		;Clear the carry flag
-	lda curLine	;update the curLn variable (increment by 40)
-	adc #maxCol
-	sta curLine
-	lda curLine+1	;deal with over flow
-	adc #00
-	sta curLine+1
-	cpx #$00
-	beq .getCh
-	dex
-	jmp .getRow
+.cont	txa
+	pha
+	jsr setCrLn
 	;get the char
 .getCh	lda (curLine),y
 	pha		;save the char
@@ -372,25 +359,11 @@ printC	stx .xReg	;save the contents of the x-register
 	cmp #false	; if this is not false...
 	bne .cont	; carry on
 	pla		; take out the last parameter (this line is only called on false)
-	jmp .return		; end the function prematurely (this line is only called on false)
-.cont	lda #$D8	;load 40 back from $7000
-	sta curLine
-	lda #$6F
-	sta curLine+1
-	;get address of row
-.getRow	clc		;Clear the carry flag
-	lda curLine	;update the curLn variable (increment by 40)
-	adc #maxCol
-	sta curLine
-	lda curLine+1	;deal with over flow
-	adc #00
-	sta curLine+1
-	cpx #$00
-	beq .prChr
-	dex
-	jmp .getRow
-	;print char
-.prChr	pla 		;get the char from the stack
+	jmp .return	; end the function prematurely (this line is only called on false)
+.cont	txa
+	pha
+	jsr setCrLn
+	pla 		;get the char from the stack
 	sta (curLine),y	;print the char
 .return	lda .save+1	;Restore return address upper byte
 	pha
@@ -454,36 +427,6 @@ crsrOff	lda #10         ;First byte links second byte to a specific crtc control
         lda #%00001000  ;Disable cursor with 5th bit 1 and 6th bit 0
         sta $9001
 	rts
-
-;
-; sub-routine to clear screen
-; Parameters: none
-; Return: none		
-;	
-clrScrn	stx .xReg	;save the contents of the x-register
-	sty .yReg	;save the contents of the y-register
-	ldx #$FF	;clear the x register (and set to -1)
-.nextLn	lda #space	;put space in the a register
-	ldy #0
-.loop	sta (curLine),y	;Print the space
-	iny
-	cpy #maxCol	;check if y is at end of line.
-	bmi .loop
-	clc		;Clear the carry flag
-	lda curLine	;update the curLn variable (increment by 40)
-	adc #maxCol
-	sta curLine
-	lda curLine+1	;deal with over flow
-	adc #00
-	sta curLine+1
-	inx
-	cpx #maxRow	;This should be maxRow
-	bmi .nextLn
-	ldx .xReg	;Restore x register
-	ldy .yReg	;Restore y register
-	rts
-.xReg	.DB 0
-.yReg	.DB 0
 
 ;
 ; sub-routine to move the puck
@@ -622,6 +565,101 @@ bounce	stx .xReg	;save the contents of the x-register
 .bnc	lda #true
 	pha
 	; return information
+.return	lda .save+1
+	pha
+	lda .save
+	pha
+	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.save	.DW 0
+.xReg	.DB 0
+.yReg	.DB 0
+
+;
+; sub-routine to clear screen
+; Parameters: none
+; Return: none		
+;	
+clrScrn	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	ldx #$FF	;clear the x register (and set to -1)
+.nextLn	lda #space	;put space in the a register
+	pha
+	jsr drwLine	;Draw a line of spaces on the current row
+	clc		;Clear the carry flag
+	lda curLine	;update the curLn variable (increment by 40)
+	adc #maxCol
+	sta curLine
+	lda curLine+1	;deal with over flow
+	adc #00
+	sta curLine+1
+	inx
+	cpx #maxRow	;This should be maxRow
+	bmi .nextLn
+	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.xReg	.DB 0
+.yReg	.DB 0
+
+;
+; sub-routine to draw a single character whatever the curLine is
+; Parameters: char to draw
+; Return: none
+; 
+drwLine	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	pla
+	sta .save	;save the first byte of the return address
+	pla
+	sta .save+1	;save the second byte of the return address
+	pla
+	ldy #0
+.loop	sta (curLine),y	;Print the char
+	iny
+	cpy #maxCol	;Check if y is at the end of line.
+	bmi .loop
+.return	lda .save+1
+	pha
+	lda .save
+	pha
+	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.save	.DW 0
+.xReg	.DB 0
+.yReg	.DB 0
+
+;
+; sub-routine to set the curLine variable
+; Parameters: row to have curLine be
+; Return: none
+;
+setCrLn	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	pla
+	sta .save	;save the first byte of the return address
+	pla
+	sta .save+1	;save the second byte of the return address
+	pla
+	tax		;Send the row parameter to x
+	lda #$D8	;load 40 back from $7000
+	sta curLine
+	lda #$6F
+	sta curLine+1
+	;get address of row
+.getRow	clc		;Clear the carry flag
+	lda curLine	;update the curLn variable (increment by 40)
+	adc #maxCol
+	sta curLine
+	lda curLine+1	;deal with over flow
+	adc #00
+	sta curLine+1
+	cpx #$00
+	beq .return
+	dex
+	jmp .getRow
 .return	lda .save+1
 	pha
 	lda .save
