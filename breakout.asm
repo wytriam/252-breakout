@@ -810,7 +810,7 @@ colBrck	stx .xReg	;save the contents of the x-register
 	sbc #$01	;Subtract 1 to get left brick
 	pha
 	jsr ersBrck
-	;jsr updtScr
+	jsr updtScr
 	jmp .return
 .brckR	lda pkRow
 	pha
