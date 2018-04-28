@@ -52,6 +52,7 @@ padColR	.DB 22		;The rightmost column the paddle occupies
 scrOne	.DB 0		;The one's digit of the score
 scrTen	.DB 0		;The ten's digit of the score
 scrHun	.DB 0		;The hundred's digit of the score
+rstFlag	.DB false	;Reset flag
 inbuff	= * .BS $20	;32-byte circular input buffer 	THIS VARIABLE MUST BE THE LAST VARIABLE BEFORE MAIN PROGRAM
 	.BS $0300-*	;Skip to the beginning of the program, proper.
 
@@ -62,7 +63,10 @@ start	jsr init	;Initialize the game
 .main	jsr ioMain
 	jsr waste	;Waste time and handle input
 	jsr movePk
-	jmp .main
+	lda rstFlag
+	cmp #false
+	beq .main
+	jmp resetPk
 	;brk		;End the program
 
 ;
@@ -595,9 +599,14 @@ bounce	stx .xReg	;save the contents of the x-register
 	beq .brckCl	;Go to brick collision method
 	cmp #brickR	;Check to see if this hit a brick right
 	beq .brckCl	;Go to brick collision method
+	cmp #bndry	;Check if puck hit the boundary
+	beq .reset	;Puck hit the boundary. Reset
 	cmp #space	;make sure the space the puck is in is a space
 	bne .bnc	;if it isn't, return true (so that it bounces)
 	jmp .noBnc	;area is a space, don't bounce
+.reset	lda #true
+	sta rstFlag	;Set the reset flag to true
+	jmp .return	;Leave function
 .brckCl	pha		;Pass the collision char as parameter
 	jsr colBrck	;Handle a brick collision
 	jmp .bnc	;have the ball bounce
@@ -960,6 +969,15 @@ prtScr	stx .xReg	;save the contents of the x-register
 	rts
 .xReg	.DB 0
 .yReg	.DB 0
+
+;
+; sub-routine to reset the puck after it hits the bottom
+; Parameters: none
+; Return: none
+; 
+resetPk	pla
+	brk
+	rts
 
 	.BS $5000-*	;Skip to the IRQ function
 ;
