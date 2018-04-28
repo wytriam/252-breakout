@@ -43,7 +43,7 @@ rSign	.DB $00		;the positive/negative sign of deltaR. 01 is positive (downwards)
 cSign	.DB $01		;the positive/negative sign of deltaC. 01 is positive (right), 00 is negative (left)
 padColL	.DB 17		;The leftmost column the paddle occupies
 padColR	.DB 22		;The rightmost column the paddle occupies
-inbuff	= * .BS $20	;32-byte circular input buffer
+inbuff	= * .BS $20	;32-byte circular input buffer 	THIS VARIABLE MUST BE THE LAST VARIABLE BEFORE MAIN PROGRAM
 	.BS $0300-*	;Skip to the beginning of the program, proper.
 
 ;
@@ -120,6 +120,7 @@ drwInit	lda #puck	;set the char for the ball ('o')
 	inx
 	cpx padColR	;Compare to the right column
 	bmi .drawPd
+	dec padColR
 .done	rts
 	
 ;
@@ -186,7 +187,7 @@ moveL	stx .xReg	;save the contents of the x-register
 	sty .yReg	;save the contents of the y-register
 	;Check to make sure you don't move offscreen
 	lda padColL
-	cmp #minCol+1
+	cmp #minCol
 	beq .return	;Get out of here if you're in the left most position
 	lda #space	;Clear the right paddle
 	pha
@@ -218,8 +219,8 @@ moveL	stx .xReg	;save the contents of the x-register
 moveR	stx .xReg	;save the contents of the x-register
 	sty .yReg	;save the contents of the y-register
 	;Check to make sure you don't move offscreen
-	lda padColL
-	cmp #minCol+1
+	lda padColR
+	cmp #maxCol+$FF
 	beq .return	;Get out of here if you're in the right most position
 	lda #space	;Clear the right paddle
 	pha
