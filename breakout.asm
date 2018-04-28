@@ -470,8 +470,8 @@ movePk	stx .xReg	;save the contents of the x-register
 	pha
 	jsr printC	;print a space
 	;Handle Ball Movement
-	jsr mvPkCl
 	jsr mvPkRw
+	jsr mvPkCl
 	lda #111	;set the char for the ball
 	pha		;turn that parameter in
 	lda pkRow	;set the row to pkRow
