@@ -55,6 +55,7 @@ scrHun	.DB 0		;The hundred's digit of the score
 rstFlag	.DB false	;Reset flag
 lives 	.DB 3		;The lives player has
 brckCtr	.DB 0		;The number of bricks on screen
+instrPt	.DB false	;Have the instructions already been printed?
 inbuff	= * .BS $20	;32-byte circular input buffer 	THIS VARIABLE MUST BE THE LAST VARIABLE BEFORE MAIN PROGRAM
 	.BS $0300-*	;Skip to the beginning of the program, proper.
 
@@ -62,6 +63,7 @@ inbuff	= * .BS $20	;32-byte circular input buffer 	THIS VARIABLE MUST BE THE LAS
 ; GAME START AND MAIN LOOP
 ;
 start	jsr init	;Initialize the game
+	jsr w84spc	;Wait for the space bar to be pressed
 main	jsr ioMain
 	jsr waste	;Waste time and handle input
 	jsr movePk
@@ -85,6 +87,7 @@ init	jsr ioinit	;Initialize the I/O
 	jsr clrScrn	;clear the screen
 	jsr crsrOff	;turn the cursor off
 	jsr drwInit	;Draw the initial game
+	jsr cInstrt	;Write instructions to the consoles
 	rts
 	
 ;
@@ -150,22 +153,56 @@ drwInit	lda #puck	;set the char for the ball ('o')
 	;Draw the bricks
 	lda #false	;no offset for first row
 	pha
-	lda #$00	;Draw the first row of bricks on the top row
+	lda #$02	;Draw the first row of bricks on the top row
 	pha
 	jsr brckLin	;Draw the first row of bricks
 	lda #true	;offset for second row
 	pha
-	lda #$01	;Set the row
+	lda #$03	;Set the row
 	pha
 	jsr brckLin	;Draw the second row of bricks
 	lda #false	;no offset for third row
 	pha
-	lda #$02	;Set the row
+	lda #$04	;Set the row
 	pha
 	jsr brckLin	;Draw the third row of bricks
+	lda #false
+	pha
+	lda #$07
+	pha
+	jsr brckAlt	;Draw the alternating row of bricks
 	jsr initScr	;Display the initial score
-	jsr initLvs
+	jsr initLvs	;Display the initial lives
 .done	rts
+	
+;
+; sub-routine to print instructions on the console	
+; Paramaters: none
+; Return: none
+;
+cInstrt	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	lda instrPt
+	cmp #true
+	beq .return	;don't print the instructions twice
+	ldy #$1E	;Set the y to perpare to print
+	ldx #$00	;Clear out x
+.loop	lda .scrMsg,x	;Get the next char of the score message
+	cmp #$00
+	beq .return	;End if it's equal
+	sta iobase
+	iny
+	inx
+	jmp .loop
+	lda #true
+	sta instrPt
+.return	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.scrMsg	.AZ "Use the < and > keys to move! Hitting a brick dead center ('#') will give double the points. Press spacebar to start!"
+.xReg	.DB 0
+.yReg	.DB 0
+.save	.DW 0
 	
 ;
 ; sub-routine to handle input in the buffer
@@ -184,6 +221,36 @@ ioMain	lda tailptr	;Get one character from the buffer, if there's one there.
 	and #%00011111	;Clear high 3 bits to make buffer circular.
 	sta tailptr
 .empty	rts		;return	
+
+;
+; sub-routine to stop the game until space is pressed
+; Parameters: none
+; Return: none
+;
+w84spc 	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-registerlda tailptr	;Get one character from the buffer, if there's one there.
+.loop	lda tailptr	;Get one character from the buffer, if there's one there.
+	cmp headptr	;Check pointers
+	beq .loop	;If equal, buffer is empty
+	tax
+	lda inbuff,X	;Get the character.
+	cmp #space	;Char becomes a parameter
+	beq .return
+	inc tailptr	;Increment the offset.
+	lda tailptr	
+	and #%00011111	;Clear high 3 bits to make buffer circular.
+	sta tailptr
+	jmp .loop
+.return	inc tailptr	;Increment the offset. (fix the tail pointer)
+	lda tailptr	
+	and #%00011111	;Clear high 3 bits to make buffer circular.
+	sta tailptr
+	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts		;Return
+.xReg	.DB 0
+.yReg	.DB 0
+
 
 ;
 ; sub-routine to print a char to the console
@@ -486,8 +553,8 @@ movePk	stx .xReg	;save the contents of the x-register
 	pha
 	jsr printC	;print a space
 	;Handle Ball Movement
-	jsr mvPkRw
 	jsr mvPkCl
+	jsr mvPkRw
 	lda #111	;set the char for the ball
 	pha		;turn that parameter in
 	lda pkRow	;set the row to pkRow
@@ -508,6 +575,9 @@ movePk	stx .xReg	;save the contents of the x-register
 ;
 mvPkCl	stx .xReg	;save the contents of the x-register
 	sty .yReg	;save the contents of the y-register
+	lda rstFlag	;Check for losing
+	cmp #true
+	beq .return
 	;Check the direction to move
 	lda cSign	;load the sign of the column movement
 	clc
@@ -548,6 +618,9 @@ mvPkCl	stx .xReg	;save the contents of the x-register
 ;
 mvPkRw	stx .xReg	;save the contents of the x-register
 	sty .yReg	;save the contents of the y-register
+	lda rstFlag	;Check for losing
+	cmp #true
+	beq .return
 	lda rSign	;load the sign of the column movement
 	clc
 	cmp #true	;if sign==true, move down. Otherwise, move up
@@ -761,6 +834,46 @@ brckLin	stx .xReg	;save the contents of the x-register
 .save	.DW 0
 .xReg	.DB 0
 .yReg	.DB 0
+
+;
+; sub-routine to draw an alternating row of bricks
+; Parameters: offset (bool), row 
+; Return: none
+; 
+brckAlt	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	pla
+	sta .save	;save the first byte of the return address
+	pla
+	sta .save+1	;save the second byte of the return address
+	jsr setCrLn	;Use the row parameter to go the appropriate line
+	pla		;Get the offset parameter
+	tay		;Save that in the y register
+	ldx #$00
+.brick	tya 		;Get the column for the leftmost part of the brick
+	pha
+	jsr drwBrck	;Draw a brick there
+	iny		;Update the column counter
+	iny
+	iny
+	iny
+	iny
+	iny
+	cpx #6		;Check to see if we've drawn all our bricks	
+	beq .return	;If we have, return
+	inx		;If we haven't, increment the brick counter and draw another
+	jmp .brick
+.return	lda .save+1
+	pha
+	lda .save
+	pha
+	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.save	.DW 0
+.xReg	.DB 0
+.yReg	.DB 0
+
 
 ;
 ; sub-routine to draw a brick
@@ -1068,17 +1181,14 @@ updtLvs	stx .xReg	;save the contents of the x-register
 ; 
 resetPk	stx .xReg	;save the contents of the x-register
 	sty .yReg	;save the contents of the y-registerjsr waste
-	jsr waste	;Let the player see the ball is stuck
-	jsr waste
-	jsr waste
-	jsr waste
 	dec lives
 	lda lives
-	cmp #$00
+	cmp #$01
 	bpl .drwLvs
 	;Player is out of lives. What do?
 	jmp resetGm	;Reset the game
 	jmp .cont
+	jsr w84spc
 .drwLvs	jsr updtLvs	;Update the lives
 .cont	lda #$0B	;Default puck row
 	sta pkRow	;Reset puck row
