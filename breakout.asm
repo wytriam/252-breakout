@@ -45,7 +45,7 @@ headptr	.DB 0		;Initialize buffer offsets to zero
 tailptr	.DB 0
 pkRow	.DB $0B		;the row the puck is on. Ranges from 0-23 ($00-$17 hex)
 pkCol	.DB $13		;the column the puck is on. Ranges from 0-39 ($00-$27 hex)
-rSign	.DB $00		;the positive/negative sign of deltaR. 01 is positive (downwards), 00 is negative (upwards)
+rSign	.DB $01		;the positive/negative sign of deltaR. 01 is positive (downwards), 00 is negative (upwards)
 cSign	.DB $01		;the positive/negative sign of deltaC. 01 is positive (right), 00 is negative (left)
 padColL	.DB 17		;The leftmost column the paddle occupies
 padColR	.DB 22		;The rightmost column the paddle occupies
@@ -66,8 +66,9 @@ start	jsr init	;Initialize the game
 	lda rstFlag
 	cmp #false
 	beq .main
-	jmp resetPk
-	;brk		;End the program
+	jsr resetPk
+	jmp .main
+	brk		;End the program
 
 ;
 ; sub-routine to initialize the game
@@ -606,7 +607,7 @@ bounce	stx .xReg	;save the contents of the x-register
 	jmp .noBnc	;area is a space, don't bounce
 .reset	lda #true
 	sta rstFlag	;Set the reset flag to true
-	jmp .return	;Leave function
+	jmp .noBnc	;Leave function (do not bounce puck)
 .brckCl	pha		;Pass the collision char as parameter
 	jsr colBrck	;Handle a brick collision
 	jmp .bnc	;have the ball bounce
@@ -975,9 +976,36 @@ prtScr	stx .xReg	;save the contents of the x-register
 ; Parameters: none
 ; Return: none
 ; 
-resetPk	pla
-	brk
+resetPk	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-registerjsr waste
+	jsr waste	;Let the player see the ball is stuck
+	jsr waste
+	jsr waste
+	jsr waste
+	lda #$0B	;Default puck row
+	sta pkRow	;Reset puck row
+	lda #$13	;Default puck col
+	sta pkCol	;Reset puck col
+	lda #puck	;set the char for the ball ('o')
+	pha		;turn that parameter in
+	lda pkRow	;store the row parameter
+	pha
+	lda pkCol	;store the col parameter
+	pha
+	jsr printC	;print the ball
+	;Draw the lower boundary line
+	lda #bndry
+	pha
+	lda #bndryR
+	pha
+	jsr drwLine
+	lda #false	;Set the reset flag back
+	sta rstFlag
+	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
 	rts
+.xReg	.DB 0
+.yReg	.DB 0
 
 	.BS $5000-*	;Skip to the IRQ function
 ;
