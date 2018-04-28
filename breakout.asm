@@ -33,6 +33,7 @@ ioctrl	= iobase+3	;control register
 irv	= $FFFA		;interrupt vector start
 mPadLKy	= 44		;ASCII for ',', which we use to move the paddle left
 mPadRKy	= 46		;ASCII for '.', which we use to move the paddle right
+nOffset	= 48		;The first numerical character in ASCII ('0')
 irqAdrU	= $50		;Upper byte of IRQ address. 
 irqAdrL	= $00		;Lower byte of IRQ address. 
 	.OR	$0000	;Start code at address $0000
@@ -48,6 +49,9 @@ rSign	.DB $00		;the positive/negative sign of deltaR. 01 is positive (downwards)
 cSign	.DB $01		;the positive/negative sign of deltaC. 01 is positive (right), 00 is negative (left)
 padColL	.DB 17		;The leftmost column the paddle occupies
 padColR	.DB 22		;The rightmost column the paddle occupies
+scrOne	.DB 0		;The one's digit of the score
+scrTen	.DB 0		;The ten's digit of the score
+scrHun	.DB 0		;The hundred's digit of the score
 inbuff	= * .BS $20	;32-byte circular input buffer 	THIS VARIABLE MUST BE THE LAST VARIABLE BEFORE MAIN PROGRAM
 	.BS $0300-*	;Skip to the beginning of the program, proper.
 
@@ -149,6 +153,7 @@ drwInit	lda #puck	;set the char for the ball ('o')
 	lda #$02	;Set the row
 	pha
 	jsr brckLin	;Draw the third row of bricks
+	jsr initScr	;Display the initial score
 .done	rts
 	
 ;
@@ -422,7 +427,7 @@ onScrn	stx .xReg	;save the contents of the x-register
 	clv
 	cpx #minRow	;compare row to upper-most row
 	bmi .retFl	;if row<0, return false
-	cpx #maxRow	;compare row to lower-most row + 1 (bpl is >=)
+	cpx #maxRow+1	;compare row to lower-most row + 1 (bpl is >=)
 	bpl .retFl	;if row>=24, return false
 	cpy #minCol	;compare col to left-most col
 	bmi .retFl	;if col<0, return false
@@ -805,6 +810,7 @@ colBrck	stx .xReg	;save the contents of the x-register
 	sbc #$01	;Subtract 1 to get left brick
 	pha
 	jsr ersBrck
+	;jsr updtScr
 	jmp .return
 .brckR	lda pkRow
 	pha
@@ -812,7 +818,8 @@ colBrck	stx .xReg	;save the contents of the x-register
 	sub #$02	;Subtract 2 to get left brick
 	pha
 	jsr ersBrck
-.return	lda .save+1
+.return	jsr updtScr
+	lda .save+1
 	pha
 	lda .save
 	pha
@@ -851,6 +858,106 @@ ersBrck	stx .xReg	;save the contents of the x-register
 	ldy .yReg	;Restore y register
 	rts
 .save	.DW 0
+.xReg	.DB 0
+.yReg	.DB 0
+
+;
+; sub-routine to initially print the score
+; Parameters: none
+; Return: none
+; 
+initScr	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	ldy #$1E	;Set the y to perpare to print
+	ldx #$00	;Clear out x
+.loop	lda .scrMsg,x	;Get the next char of the score message
+	cmp #$00
+	beq .return	;End if it's equal
+	pha		;Save the char
+	lda #$18
+	pha		;Push the row
+	tya
+	pha		;Push the col
+	jsr printC	;Print the char
+	iny
+	inx
+	jmp .loop
+.return	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.scrMsg	.AZ "Score: 000"
+.xReg	.DB 0
+.yReg	.DB 0
+
+
+;
+; sub-routine to increment score by 1 
+; Parameters: none
+; Return: none
+; 
+updtScr	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	inc scrOne	;Increment the one's digit of the score
+	lda scrOne	;Load the score
+	cmp #$0A	;Compare it to 10
+	bmi .return
+	lda #$00
+	sta scrOne	;zero out the one's place
+	inc scrTen	;increment the ten's place
+	lda scrTen
+	cmp #$0A	;Make sure the ten's digit doesn't <10
+	bmi .return
+	lda #$00	;Zero out the ten's place
+	sta scrTen
+	inc scrHun	;And increment the hundred's. Scores of 1000+ improbable. 
+.return	jsr prtScr
+	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.xReg	.DB 0
+.yReg	.DB 0
+
+;
+; sub-routine to print score on screen
+; Parameters: none
+; Return: none
+;
+prtScr	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	ldy #$25	;Get the hundred's column
+	ldx #$18
+	lda scrHun	;Load the hundred's place
+	clc
+	adc #nOffset	;Get the ASCII char for this number
+	pha
+	txa
+	pha
+	tya
+	pha
+	jsr printC	;Print the 100's place
+	iny
+	lda scrTen	;Load the hundred's place
+	clc
+	adc #nOffset	;Get the ASCII char for this number
+	pha
+	txa
+	pha
+	tya
+	pha
+	jsr printC	;Print the 100's place
+	iny
+	lda scrOne	;Load the hundred's place
+	clc
+	adc #nOffset	;Get the ASCII char for this number
+	pha
+	txa
+	pha
+	tya
+	pha
+	jsr printC	;Print the 100's place
+	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
 .xReg	.DB 0
 .yReg	.DB 0
 
