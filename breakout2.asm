@@ -6,7 +6,7 @@
 ; Purpose of program:	Breakout Game
 
 	.CR 6502		; Assemble 6502 language.
-	.TF breakout.prg,BIN	; Object file and format
+	.TF breakout2.prg,BIN	; Object file and format
 	.LI toff		; Listing on, no timings included.
 	
 ; CONSTANTS
@@ -60,6 +60,7 @@ inbuff	= * .BS $20	;32-byte circular input buffer 	THIS VARIABLE MUST BE THE LAS
 ; GAME START AND MAIN LOOP
 ;
 start	jsr init	;Initialize the game
+	jsr initCsl	;Initialize the console
 .main	jsr ioMain
 	jsr waste	;Waste time and handle input
 	jsr movePk
@@ -69,6 +70,30 @@ start	jsr init	;Initialize the game
 	jmp resetPk
 	;brk		;End the program
 
+;
+; sub-routine to print instructions on the console	
+; Paramaters: none
+; Return: none
+;
+initCsl	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	ldy #$1E	;Set the y to perpare to print
+	ldx #$00	;Clear out x
+.loop	lda .scrMsg,x	;Get the next char of the score message
+	cmp #$00
+	beq .return	;End if it's equal
+	sta iobase
+	iny
+	inx
+	jmp .loop
+.return	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.scrMsg	.AZ "Use the < and > keys to move! Hitting a brick dead center will give double the points. Press spacebar to start!"
+.xReg	.DB 0
+.yReg	.DB 0
+.save	.DW 0
+	
 ;
 ; sub-routine to initialize the game
 ; Parameters: none
@@ -144,19 +169,24 @@ drwInit	lda #puck	;set the char for the ball ('o')
 	;Draw the bricks
 	lda #false	;no offset for first row
 	pha
-	lda #$00	;Draw the first row of bricks on the top row
+	lda #$02	;Draw the first row of bricks on the top row
 	pha
 	jsr brckLin	;Draw the first row of bricks
 	lda #true	;offset for second row
 	pha
-	lda #$01	;Set the row
+	lda #$03	;Set the row
 	pha
 	jsr brckLin	;Draw the second row of bricks
 	lda #false	;no offset for third row
 	pha
-	lda #$02	;Set the row
+	lda #$04	;Set the row
 	pha
 	jsr brckLin	;Draw the third row of bricks
+	lda #false
+	pha
+	lda #$07
+	pha
+	jsr brckAlt	;Draw the alternating row of bricks
 	jsr initScr	;Display the initial score
 .done	rts
 	
@@ -292,7 +322,7 @@ waste	stx .xReg	;save the contents of the x-register
 .loop	cpx #$00
 	beq .return
 	dex
-	jsr wstTm	;waste some time (nop FF * FF times)
+	jsr wstTm	;waste some time (nop BB * BB times)
 	jsr ioMain	;Handle any input (gotta keep that snappy)
 	jmp .loop
 .return	ldx .xReg	;Restore x register
@@ -308,8 +338,8 @@ waste	stx .xReg	;save the contents of the x-register
 ;
 wstTm	stx .xReg	;save the contents of the x-register
 	sty .yReg	;save the contents of the y-register
-	ldx #$FF
-	ldy #$FF
+	ldx #$BB
+	ldy #$BB
 .lpOutr	cpy #$00
 	beq .return
 	dey
@@ -742,6 +772,45 @@ brckLin	stx .xReg	;save the contents of the x-register
 	iny
 	cpx #12		;Check to see if we've drawn all our bricks	
 	beq .return	;If we have, return	
+	inx		;If we haven't, increment the brick counter and draw another
+	jmp .brick
+.return	lda .save+1
+	pha
+	lda .save
+	pha
+	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
+.save	.DW 0
+.xReg	.DB 0
+.yReg	.DB 0
+
+;
+; sub-routine to draw an alternating row of bricks
+; Parameters: offset (bool), row 
+; Return: none
+; 
+brckAlt	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	pla
+	sta .save	;save the first byte of the return address
+	pla
+	sta .save+1	;save the second byte of the return address
+	jsr setCrLn	;Use the row parameter to go the appropriate line
+	pla		;Get the offset parameter
+	tay		;Save that in the y register
+	ldx #$00
+.brick	tya 		;Get the column for the leftmost part of the brick
+	pha
+	jsr drwBrck	;Draw a brick there
+	iny		;Update the column counter
+	iny
+	iny
+	iny
+	iny
+	iny
+	cpx #6		;Check to see if we've drawn all our bricks	
+	beq .return	;If we have, return
 	inx		;If we haven't, increment the brick counter and draw another
 	jmp .brick
 .return	lda .save+1
