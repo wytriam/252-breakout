@@ -54,6 +54,7 @@ scrTen	.DB 0		;The ten's digit of the score
 scrHun	.DB 0		;The hundred's digit of the score
 rstFlag	.DB false	;Reset flag
 lives 	.DB 3		;The lives player has
+brckCtr	.DB 0		;The number of bricks on screen
 inbuff	= * .BS $20	;32-byte circular input buffer 	THIS VARIABLE MUST BE THE LAST VARIABLE BEFORE MAIN PROGRAM
 	.BS $0300-*	;Skip to the beginning of the program, proper.
 
@@ -778,7 +779,8 @@ drwBrck	stx .xReg	;save the contents of the x-register
 	iny
 	lda #brickR	;Load the right part of the brick
 	sta (curLine),y	;Draw the right part of the brick
-.return	lda .save+1
+.return	inc brckCtr	;Increment the brick counter
+	lda .save+1
 	pha
 	lda .save
 	pha
@@ -861,6 +863,7 @@ ersBrck	stx .xReg	;save the contents of the x-register
 	sta (curLine),y ;Erase brickC
 	iny
 	sta (curLine),y	;Erase brickR
+	dec brckCtr	;Decrement the brick counter
 .return	lda .save+1
 	pha
 	lda .save
@@ -1070,7 +1073,7 @@ resetPk	stx .xReg	;save the contents of the x-register
 	cmp #$00
 	bpl .drwLvs
 	;Player is out of lives. What do?
-	brk
+	jmp resetGm	;Reset the game
 	jmp .cont
 .drwLvs	jsr updtLvs	;Update the lives
 .cont	lda #$0B	;Default puck row
@@ -1097,6 +1100,31 @@ resetPk	stx .xReg	;save the contents of the x-register
 	jmp main
 .xReg	.DB 0
 .yReg	.DB 0
+
+; 
+; routine to reset the game
+; Parameters: none
+; Return: none
+; 
+resetGm	lda #$0B
+	sta pkRow	;Reset pkRow
+	lda #$13	
+	sta pkCol	;Reset pkCol
+	lda #17
+	sta padColL	;Reset padCOlL
+	lda #22		
+	sta padColR	;Reset padColR
+	lda #0
+	sta scrOne	;Reset one's digit of score
+	lda #0	
+	sta scrTen	;Reset ten's digit of score
+	lda #0
+	sta scrHun	;Reset hundred's digit of score
+	lda #false
+	sta rstFlag	;Reset resetFlag
+	lda #3
+	sta lives	;Reset lives
+	jmp start	;Restart game
 
 	.BS $5000-*	;Skip to the IRQ function
 ;
