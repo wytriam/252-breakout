@@ -40,13 +40,17 @@ irqAdrL	= $00		;Lower byte of IRQ address.
 	jmp	start	;Jump to the beginning of the program, proper.
 
 ; VARIABLES
-curLine	.DW $7000	;creates a variable to store the current line that is 2 bytes large
+curLine	.DW $7000	;creates a variable to store the current line 
 headptr	.DB 0		;Initialize buffer offsets to zero
 tailptr	.DB 0
-pkRow	.DB $0B		;the row the puck is on. Ranges from 0-23 ($00-$17 hex)
-pkCol	.DB $13		;the column the puck is on. Ranges from 0-39 ($00-$27 hex)
-rSign	.DB $01		;the positive/negative sign of deltaR. 01 is positive (downwards), 00 is negative (upwards)
-cSign	.DB $01		;the positive/negative sign of deltaC. 01 is positive (right), 00 is negative (left)
+pkRow	.DB $0B		;the row the puck is on. Ranges from 0-23
+			;($00-$17 hex)
+pkCol	.DB $13		;the column the puck is on. Ranges from 0-39 
+			;($00-$27 hex)
+rSign	.DB $01		;the positive/negative sign of deltaR. 01 is positive 
+			;(downwards), 00 is negative (upwards)
+cSign	.DB $01		;the positive/negative sign of deltaC. 01 is positive 
+			;(right), 00 is negative (left)
 padColL	.DB 17		;The leftmost column the paddle occupies
 padColR	.DB 22		;The rightmost column the paddle occupies
 scrOne	.DB 0		;The one's digit of the score
@@ -56,7 +60,8 @@ rstFlag	.DB false	;Reset flag
 lives 	.DB 3		;The lives player has
 brckCtr	.DB 0		;The number of bricks on screen
 instrPt	.DB false	;Have the instructions already been printed?
-inbuff	= * .BS $20	;32-byte circular input buffer 	THIS VARIABLE MUST BE THE LAST VARIABLE BEFORE MAIN PROGRAM
+inbuff	= * .BS $20	;32-byte circular input buffer 	
+			;THIS VARIABLE MUST BE THE LAST VARIABLE BEFORE MAIN PROGRAM
 	.BS $0300-*	;Skip to the beginning of the program, proper.
 
 ;
@@ -95,8 +100,9 @@ init	jsr ioinit	;Initialize the I/O
 ; Paramters: none
 ; Return: none
 ;
-ioinit	lda #%00001001	;No parity, no echo, tx IRQ disable, rx IRQ enable, ~DTR low
-	sta iocmd	;
+ioinit	lda #%00001001	;No parity, no echo, tx IRQ disable, rx IRQ enable, 
+			;~DTR low
+	sta iocmd	
 	lda #%00010110	;1 stop bit, 8 bit word, 300 bps
 	sta ioctrl
 	rts
@@ -209,7 +215,8 @@ cInstrt	stx .xReg	;save the contents of the x-register
 ; Parameters: none
 ; Return: none
 ;
-ioMain	lda tailptr	;Get one character from the buffer, if there's one there.
+ioMain	lda tailptr	;Get one character from the buffer, if there's one 
+			;there.
 	cmp headptr	;Check pointers
 	beq .empty	;If equal, buffer is empty
 	tax
@@ -227,9 +234,12 @@ ioMain	lda tailptr	;Get one character from the buffer, if there's one there.
 ; Parameters: none
 ; Return: none
 ;
-w84spc 	;stx .xReg	;save the contents of the x-register
-	;sty .yReg	;save the contents of the y-registerlda tailptr	;Get one character from the buffer, if there's one there.
-.loop	lda tailptr	;Get one character from the buffer, if there's one there.
+w84spc 	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-registerlda tailptr	
+	jsr spcMsg	;Tell user to press space
+	;Get one character from the buffer, if there's one there.
+.loop	lda tailptr	;Get one character from the buffer, if there's one 
+			;there.
 	cmp headptr	;Check pointers
 	beq .loop	;If equal, buffer is empty
 	tax
@@ -245,11 +255,17 @@ w84spc 	;stx .xReg	;save the contents of the x-register
 	lda tailptr	
 	and #%00011111	;Clear high 3 bits to make buffer circular.
 	sta tailptr
-	;ldx .xReg	;Restore x register
-	;ldy .yReg	;Restore y register
+	;Clear the press space instructions
+	lda #space
+	pha
+	lda #$14
+	pha
+	jsr drwLine
+	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
 	rts		;Return
-;.xReg	.DB 0
-;.yReg	.DB 0
+.xReg	.DB 0
+.yReg	.DB 0
 
 
 ;
@@ -260,7 +276,7 @@ w84spc 	;stx .xReg	;save the contents of the x-register
 movePd	stx .xReg	;save the contents of the x-register
 	sty .yReg	;save the contents of the y-register
 	pla
-	sta .save	;where does .save and .save+1 actually save? ;save the first byte of the return address
+	sta .save	;save the first byte of the return address
 	pla
 	sta .save+1	;save the second byte of the return address
 .write1	lda iostat	;Read the ACIA status
@@ -406,7 +422,7 @@ wstTm	stx .xReg	;save the contents of the x-register
 getC	stx .xReg	;save the contents of the x-register
 	sty .yReg	;save the contents of the y-register
 	pla
-	sta .save	;where does .save and .save+1 actually save? ;save the first byte of the return address
+	sta .save	;save the first byte of the return address
 	pla
 	sta .save+1	;save the second byte of the return address
 	pla		;get column
@@ -422,9 +438,10 @@ getC	stx .xReg	;save the contents of the x-register
 	pla		;get the return value
 	cmp #false	;if this is not false...
 	bne .cont	;carry on
-	lda #$FF		;return FF (this line is only called on false)
+	lda #$FF	;return FF (this line is only called on false)
 	pha
-	jmp .return	;end the function prematurely (this line is only called on false)
+	jmp .return	;end the function prematurely (this line is only called
+			;on false)
 .cont	txa
 	pha
 	jsr setCrLn
@@ -451,7 +468,7 @@ getC	stx .xReg	;save the contents of the x-register
 printC	stx .xReg	;save the contents of the x-register
 	sty .yReg	;save the contents of the y-register
 	pla
-	sta .save	;where does .save and .save+1 actually save? ;save the first byte of the return address
+	sta .save	;save the first byte of the return address
 	pla
 	sta .save+1	;save the second byte of the return address
 	pla		;get column
@@ -467,8 +484,8 @@ printC	stx .xReg	;save the contents of the x-register
 	pla		;get the return value
 	cmp #false	; if this is not false...
 	bne .cont	; carry on
-	pla		; take out the last parameter (this line is only called on false)
-	jmp .return	; end the function prematurely (this line is only called on false)
+	pla		; take out the last parameter
+	jmp .return	; end the function prematurely
 .cont	txa
 	pha
 	jsr setCrLn
@@ -531,7 +548,8 @@ onScrn	stx .xReg	;save the contents of the x-register
 ; Parameters: none
 ; Return: none
 ;
-crsrOff	lda #10         ;First byte links second byte to a specific crtc control register
+crsrOff	lda #10         ;First byte links second byte to a specific crtc control
+			;register
         sta $9000
         lda #%00001000  ;Disable cursor with 5th bit 1 and 6th bit 0
         sta $9001
@@ -552,9 +570,9 @@ movePk	stx .xReg	;save the contents of the x-register
 	pha
 	jsr printC	;print a space
 	;Handle Ball Movement
-	jsr mvPkCl
 	jsr mvPkRw
-	lda #111	;set the char for the ball
+	jsr mvPkCl
+	lda #puck	;set the char for the ball
 	pha		;turn that parameter in
 	lda pkRow	;set the row to pkRow
 	pha
@@ -585,16 +603,17 @@ mvPkCl	stx .xReg	;save the contents of the x-register
 	clc
 	cmp #false	;Check to see if sign is negative
 	beq .mvLft	;if it is, move left
-	;brk 		;The sign was neither positive or negative. Debug and find out how
 .mvRgt	inc pkCol	;Increment the column position by 1
 	jmp .bnChk	;Check to see if we should bounce
 .mvLft	dec pkCol
-.bnChk	jsr bounce	;Check to see if the ball should bounce in this position
+.bnChk	jsr bounce	;Check to see if the ball should bounce in this 
+			;position
 	pla
 	clc
 	cmp #false	;If the bounce return is true, we should bounce
 	beq .return	;If the bounce is false, though, we can jump to return
-	lda cSign	;This code handles how we bounce left/right. First, load the sign....	
+	lda cSign	;This code handles how we bounce left/right. First, 
+			;load the sign....	
 	clc
 	cmp #$00	;Check if the sign is negative
 	beq .nToP	;Change negative to positive
@@ -627,16 +646,17 @@ mvPkRw	stx .xReg	;save the contents of the x-register
 	clc
 	cmp #false	;Check to see if sign is negative
 	beq .mvUp	;if it is, move up
-	;brk 		;The sign was neither positive or negative. Debug and find out how
 .mvDn	inc pkRow	;Increment the row position by 1
 	jmp .bnChk	;Check to see if we should bounce
 .mvUp	dec pkRow
-.bnChk	jsr bounce	;Check to see if the ball should bounce in this position
+.bnChk	jsr bounce	;Check to see if the ball should bounce in this 
+			;position
 	pla
 	clc
 	cmp #false	;If the bounce return is true, we should bounce
 	beq .return	;If the bounce is false, though, we can jump to return
-	lda rSign	;This code handles how we bounce up/down. First, load the sign....	
+	lda rSign	;This code handles how we bounce up/down. First, 
+			;load the sign....	
 	clc
 	cmp #$00	;Check if the sign is negative
 	beq .nToP	;Change negative to positive
@@ -653,7 +673,7 @@ mvPkRw	stx .xReg	;save the contents of the x-register
 .yReg	.DB 0
 
 ;
-; sub-routine to check if the puck should bounce. returns 00 for bounce, 01 for don't bounce
+; sub-routine to check if the puck should bounce.
 ; Parameters: none
 ; Return: true (01) for bounce, false (00) for no bounce
 ;
@@ -717,7 +737,7 @@ clrScrn	stx .xReg	;save the contents of the x-register
 .nextLn	lda #space	;put space in the a register
 	pha
 	txa
-	adc #$01	;The x counter is offset from the current row by 1. Let's fix that
+	adc #$01	;The x counter is offset from the current row by 1.
 	pha
 	jsr drwLine	;Draw a line of spaces on the current row
 	inx
@@ -740,7 +760,8 @@ drwLine	stx .xReg	;save the contents of the x-register
 	sta .save	;save the first byte of the return address
 	pla
 	sta .save+1	;save the second byte of the return address
-	jsr setCrLn	;This pulls the second parameter and sets up curLn correctly
+	jsr setCrLn	;This pulls the second parameter and sets up curLn 
+			;correctly
 	pla		;get the character to draw
 	ldy #0		
 .loop	sta (curLine),y	;Print the char
@@ -821,7 +842,8 @@ brckLin	stx .xReg	;save the contents of the x-register
 	iny
 	cpx #12		;Check to see if we've drawn all our bricks	
 	beq .return	;If we have, return	
-	inx		;If we haven't, increment the brick counter and draw another
+	inx		;If we haven't, increment the brick counter and draw 
+			;another
 	jmp .brick
 .return	lda .save+1
 	pha
@@ -860,7 +882,8 @@ brckAlt	stx .xReg	;save the contents of the x-register
 	iny
 	cpx #6		;Check to see if we've drawn all our bricks	
 	beq .return	;If we have, return
-	inx		;If we haven't, increment the brick counter and draw another
+	inx		;If we haven't, increment the brick counter and draw 
+			;another
 	jmp .brick
 .return	lda .save+1
 	pha
@@ -886,7 +909,6 @@ drwBrck	stx .xReg	;save the contents of the x-register
 	pla
 	sta .save+1	;save the second byte of the return address
 	pla		;Get the column parameter
-;	jsr setCrLn	;use the row parameter to modify the current line
 	lda #brickL	;Load the left part of the brick
 	sta (curLine),y	;Draw the left part of the brick
 	iny
@@ -914,7 +936,7 @@ drwBrck	stx .xReg	;save the contents of the x-register
 ; 
 colBrck	stx .xReg	;save the contents of the x-register
 	sty .yReg	;save the contents of the y-register
-		pla
+	pla
 	sta .save	;save the first byte of the return address
 	pla
 	sta .save+1	;save the second byte of the return address
@@ -925,7 +947,8 @@ colBrck	stx .xReg	;save the contents of the x-register
 	beq .brckC
 	cmp #brickR
 	beq .brckR
-	jmp .return	;Do nothing if this function was called with a non-brick collision char
+	jmp .return	;Do nothing if this function was called with a 
+			;non-brick collision char
 .brckL	lda pkRow
 	sbc #$00
 	pha
@@ -1039,7 +1062,8 @@ updtScr	stx .xReg	;save the contents of the x-register
 	bmi .return
 	lda #$00	;Zero out the ten's place
 	sta scrTen
-	inc scrHun	;And increment the hundred's. Scores of 1000+ improbable. 
+	inc scrHun	;And increment the hundred's. Scores of 1000+ 
+			;improbable. 
 .return	jsr prtScr
 	ldx .xReg	;Restore x register
 	ldy .yReg	;Restore y register
@@ -1179,14 +1203,14 @@ updtLvs	stx .xReg	;save the contents of the x-register
 ; Return: none
 ; 
 resetPk	stx .xReg	;save the contents of the x-register
-	sty .yReg	;save the contents of the y-registerjsr waste
+	sty .yReg	;save the contents of the y-register
 	dec lives
 	lda lives
 	cmp #$01
 	bpl .drwLvs
-	;Player is out of lives. What do?
 	jmp resetGm	;Reset the game
-.drwLvs	jsr w84spc
+.drwLvs	jsr spcMsg
+	jsr w84spc
 	jsr updtLvs	;Update the lives
 .cont	lda #$0B	;Default puck row
 	sta pkRow	;Reset puck row
@@ -1238,6 +1262,35 @@ resetGm	lda #$0B
 	sta lives	;Reset lives
 	jmp start	;Restart game
 
+;
+; sub-routine to initially print the lives
+; Parameters: none
+; Return: none
+; 
+spcMsg	stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	ldy #$0D	;Set the y to perpare to print
+	ldx #$00	;Clear out x
+.loop	lda .spcMsg,x	;Get the next char of the score message
+	cmp #$00
+	beq .return	;End if it's equal
+	pha		;Save the char
+	lda #$14
+	pha		;Push the row
+	tya
+	pha		;Push the col
+	jsr printC	;Print the char
+	iny
+	inx
+	jmp .loop
+.return	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	jsr updtLvs
+	rts
+.spcMsg	.AZ "Press Space"
+.xReg	.DB 0
+.yReg	.DB 0
+	
 	.BS $5000-*	;Skip to the IRQ function
 ;
 ; sub-routine to handle interupts
