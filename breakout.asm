@@ -51,7 +51,8 @@ inbuff	= * .BS $20	;32-byte circular input buffer 	THIS VARIABLE MUST BE THE LAS
 ;
 start	jsr init	;Initialize the game
 .main	jsr ioMain
-	;jsr waste	;Waste time and handle input
+	jsr waste	;Waste time and handle input
+	jsr movePk
 	jmp .main
 	;brk		;End the program
 
@@ -256,6 +257,7 @@ waste	stx .xReg	;save the contents of the x-register
 	beq .return
 	dex
 	jsr wstTm	;waste some time (slow ball down)
+	jsr ioMain
 	jmp .loop
 .return	ldx .xReg	;Restore x register
 	ldy .yReg	;Restore y register
