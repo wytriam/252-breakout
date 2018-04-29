@@ -371,50 +371,6 @@ moveR	stx .xReg	;save the contents of the x-register
 	rts
 .xReg	.DB 0
 .yReg	.DB 0	
-
-;
-; sub-routine to waste lots of time. This also checks on input. 
-; Paramaters: none
-; Return: none	
-;
-waste	stx .xReg	;save the contents of the x-register
-	sty .yReg	;save the contents of the y-register
-	ldx #$3F
-.loop	cpx #$00
-	beq .return
-	dex
-	jsr wstTm	;waste some time (nop FF * FF times)
-	jsr ioMain	;Handle any input (gotta keep that snappy)
-	jmp .loop
-.return	ldx .xReg	;Restore x register
-	ldy .yReg	;Restore y register
-	rts
-.xReg	.DB 0
-.yReg	.DB 0	
-
-;
-; sub-routine to waste time (used to slow down the game)
-; Parameters: none
-; Return: none
-;
-wstTm	stx .xReg	;save the contents of the x-register
-	sty .yReg	;save the contents of the y-register
-	ldx #$FF
-	ldy #$FF
-.lpOutr	cpy #$00
-	beq .return
-	dey
-.lpInnr	cpx #$00	;time-wasting loop
-	beq .lpOutr	;exit to outer loop
-	nop		;nop once
-	dex		;decrement x
-	jmp .lpInnr	;try again
-	; return information
-.return	ldx .xReg	;Restore x register
-	ldy .yReg	;Restore y register
-	rts
-.xReg	.DB 0
-.yReg	.DB 0	
 	
 ;	
 ; sub-routine to get a char. Argument order is row, column
@@ -572,8 +528,8 @@ movePk	stx .xReg	;save the contents of the x-register
 	lda pkCtrU	;Load the upper puck counter
 	adc #$00	;Update the upper byte
 	sta pkCtrU	;Save the upper byte	
-	and #%00000010	;Is the upper byte odd?
-	cmp #$00000010	;
+	and #%00001111	;Is the upper byte odd?
+	cmp #%00001111	;
 	beq .cont
 	jmp .return
 .cont	lda #space	;clear the current puck Pos
