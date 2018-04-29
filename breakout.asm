@@ -72,12 +72,11 @@ inbuff	= * .BS $20	;32-byte circular input buffer
 start	jsr init	;Initialize the game
 	jsr w84spc	;Wait for the space bar to be pressed
 main	jsr ioMain
-	;jsr waste	;Waste time and handle input
 	jsr movePk
 	lda brckCtr	;Check for winning
 	cmp #$00	;If the bricks are 0, you win.
 	bne .losChk	;
-	jmp resetGm	;Reset the game
+	jmp victory	;Reset the game
 .losChk	lda rstFlag	;Check for losing
 	cmp #false
 	beq main
@@ -1183,7 +1182,8 @@ resetPk	stx .xReg	;save the contents of the x-register
 	jsr updtLvs	;Update the lives
 .cont	lda #$0B	;Default puck row
 	sta pkRow	;Reset puck row
-	lda #$13	;Default puck col
+	lda padColL	;Default puck col
+	adc #$02
 	sta pkCol	;Reset puck col
 	lda #puck	;set the char for the ball ('o')
 	pha		;turn that parameter in
