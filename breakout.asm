@@ -60,6 +60,8 @@ rstFlag	.DB false	;Reset flag
 lives 	.DB 3		;The lives player has
 brckCtr	.DB 0		;The number of bricks on screen
 instrPt	.DB false	;Have the instructions already been printed?
+pkCtrL	.DB $00		;A counter for the ball to slow it down. Lower byte
+pkCtrU	.DB $00		;A counter for the ball to slow it down. Upper byte
 inbuff	= * .BS $20	;32-byte circular input buffer 	
 			;THIS VARIABLE MUST BE THE LAST VARIABLE BEFORE MAIN PROGRAM
 	.BS $0300-*	;Skip to the beginning of the program, proper.
@@ -70,7 +72,7 @@ inbuff	= * .BS $20	;32-byte circular input buffer
 start	jsr init	;Initialize the game
 	jsr w84spc	;Wait for the space bar to be pressed
 main	jsr ioMain
-	jsr waste	;Waste time and handle input
+	;jsr waste	;Waste time and handle input
 	jsr movePk
 	lda brckCtr	;Check for winning
 	cmp #$00	;If the bricks are 0, you win.
@@ -562,7 +564,19 @@ crsrOff	lda #10         ;First byte links second byte to a specific crtc control
 ;
 movePk	stx .xReg	;save the contents of the x-register
 	sty .yReg	;save the contents of the y-register
-	lda #space	;clear the current puck Pos
+	lda pkCtrL	;Load the lower puck counter
+	adc #$01	;Update the lower byte
+	sta pkCtrL	;Save the lower byte
+	cmp #%01100110	;Have we reached the magic numbers?
+	bne .return	;Skip this if we haven't	
+	lda pkCtrU	;Load the upper puck counter
+	adc #$00	;Update the upper byte
+	sta pkCtrU	;Save the upper byte	
+	and #%00000010	;Is the upper byte odd?
+	cmp #$00000010	;
+	beq .cont
+	jmp .return
+.cont	lda #space	;clear the current puck Pos
 	pha		;turn that parameter in
 	lda pkRow	;set the row to pkRow
 	pha
@@ -579,7 +593,7 @@ movePk	stx .xReg	;save the contents of the x-register
 	lda pkCol	;set the col to pkCol
 	pha
 	jsr printC	;print a space
-	ldx .xReg	;Restore x register
+.return	ldx .xReg	;Restore x register
 	ldy .yReg	;Restore y register
 	rts
 .xReg	.DB 0
@@ -895,7 +909,6 @@ brckAlt	stx .xReg	;save the contents of the x-register
 .save	.DW 0
 .xReg	.DB 0
 .yReg	.DB 0
-
 
 ;
 ; sub-routine to draw a brick
