@@ -62,6 +62,7 @@ brckCtr	.DB 0		;The number of bricks on screen
 instrPt	.DB false	;Have the instructions already been printed?
 pkCtrL	.DB $00		;A counter for the ball to slow it down. Lower byte
 pkCtrU	.DB $00		;A counter for the ball to slow it down. Upper byte
+spTgl	.DB false	;A toggle for hitting space
 inbuff	= * .BS $20	;32-byte circular input buffer 	
 			;THIS VARIABLE MUST BE THE LAST VARIABLE BEFORE MAIN PROGRAM
 	.BS $0300-*	;Skip to the beginning of the program, proper.
@@ -290,8 +291,13 @@ movePd	stx .xReg	;save the contents of the x-register
 	clc
 	cmp #mPadRKy
 	beq .mvRght
+	clc 
+	cmp #space
+	beq .toggle
 	jmp .return	;Input did not match any key; return
 .mvLeft	jsr moveL
+	jmp .return
+.toggle	jsr spcTggl	;Toggle space
 	jmp .return
 .mvRght	jsr moveR
 .return	lda .save+1
@@ -302,6 +308,43 @@ movePd	stx .xReg	;save the contents of the x-register
 	ldy .yReg	;Restore y register
 	rts
 .save	.DW 0
+.xReg	.DB 0
+.yReg	.DB 0
+
+;
+; sub-routine to toggle the space bar (and pause the game)
+; Parameters: none
+; Return: none
+;
+spcTggl stx .xReg	;save the contents of the x-register
+	sty .yReg	;save the contents of the y-register
+	clc
+	lda spTgl	;Load the space toggle
+	cmp #false
+	beq .false
+	lda #false
+	sta spTgl	;Toggle space
+	;Clear the press space instructions
+	lda #space
+	pha
+	lda #$14
+	pha
+	jsr drwLine
+	;Draw the ball (in case it was behind message)
+	lda #puck
+	pha
+	lda pkRow
+	pha
+	lda pkCol
+	pha
+	jsr printC
+	jmp .return
+.false	lda #true
+	sta spTgl	;Toggle space
+	jsr spcMsg	;Display press space
+.return	ldx .xReg	;Restore x register
+	ldy .yReg	;Restore y register
+	rts
 .xReg	.DB 0
 .yReg	.DB 0
 
@@ -519,6 +562,10 @@ crsrOff	lda #10         ;First byte links second byte to a specific crtc control
 ;
 movePk	stx .xReg	;save the contents of the x-register
 	sty .yReg	;save the contents of the y-register
+	clc
+	lda spTgl	;Load the space toggle
+	cmp #true
+	beq .return	;No move if true
 	lda pkCtrL	;Load the lower puck counter
 	adc #$01	;Update the lower byte
 	sta pkCtrL	;Save the lower byte
