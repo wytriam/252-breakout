@@ -6,7 +6,7 @@
 ; Purpose of program:	Breakout Game
 
 	.CR 6502		; Assemble 6502 language.
-	.TF foxtrot.prg,BIN	; Object file and format
+	.TF Foxtrot.prg,BIN	; Object file and format
 	.LI toff		; Listing on, no timings included.
 	
 ; CONSTANTS
@@ -207,7 +207,7 @@ cInstrt	stx .xReg	;save the contents of the x-register
 	ldx .xReg	;Restore x register
 	ldy .yReg	;Restore y register
 	rts
-.scrMsg	.AZ "Use the < and > keys to move! Hitting a brick dead center ('#') will give double the points. Press spacebar to start!"
+.scrMsg	.AZ "Use the ',' and '.' keys to move! Hitting a brick dead center ('#') will give   double the points. Press spacebar to start the game, and again to pause/unpause whenever you want!"
 .xReg	.DB 0
 .yReg	.DB 0
 .save	.DW 0
@@ -355,6 +355,10 @@ spcTggl stx .xReg	;save the contents of the x-register
 ; 
 moveL	stx .xReg	;save the contents of the x-register
 	sty .yReg	;save the contents of the y-register
+	;Check to make sure the game isn't paused
+	lda spTgl	;Load the space toggle
+	cmp #true
+	beq .return	;No move if true
 	;Check to make sure you don't move offscreen
 	lda padColL
 	cmp #minCol
@@ -388,6 +392,10 @@ moveL	stx .xReg	;save the contents of the x-register
 ; 
 moveR	stx .xReg	;save the contents of the x-register
 	sty .yReg	;save the contents of the y-register
+	;Check to make sure the game isn't paused
+	lda spTgl	;Load the space toggle
+	cmp #true
+	beq .return	;No move if true
 	;Check to make sure you don't move offscreen
 	lda padColR
 	cmp #maxCol+$FF	;Get the maxCol-1
@@ -574,8 +582,8 @@ movePk	stx .xReg	;save the contents of the x-register
 	lda pkCtrU	;Load the upper puck counter
 	adc #$00	;Update the upper byte
 	sta pkCtrU	;Save the upper byte	
-	and #%00001111	;Is the upper byte odd?
-	cmp #%00001111	;
+	and #%00000111	;Is the upper byte odd?
+	cmp #%00000111	;
 	beq .cont
 	jmp .return
 .cont	lda #space	;clear the current puck Pos
